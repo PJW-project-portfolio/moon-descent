@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Moon Descent 3D</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+
+  <!-- 좌상단 계기판 -->
+  <div id="hud-panel" class="hud-box">
+    <div class="stat"><span class="label">ALT</span><span id="hud-alt" class="value">0 m</span></div>
+    <div class="stat"><span class="label">V-SPD</span><span id="hud-vspd" class="value">0 m/s</span></div>
+    <div class="stat"><span class="label">H-SPD</span><span id="hud-hspd" class="value">0 m/s</span></div>
+    <div class="stat"><span class="label">TILT</span><span id="hud-tilt" class="value">0°</span></div>
+    <div class="stat">
+      <span class="label">FUEL</span>
+      <span class="fuel-wrap"><span class="bar-track"><span id="hud-fuel-bar" class="bar"></span></span><span id="hud-fuel-text" class="value">100</span></span>
+    </div>
+    <div class="indicators">
+      <span id="hud-sas" class="indicator on">SAS ON</span>
+      <span id="hud-engine" class="indicator off">engine</span>
+    </div>
+  </div>
+
+  <!-- 우상단: 패드 방향/거리 + 카메라 모드 -->
+  <div id="hud-nav" class="hud-box">
+    <div class="stat"><span class="label">PAD</span><span id="hud-pad-dist" class="value">0 m</span></div>
+    <div id="hud-pad-arrow">▲</div>
+    <div id="hud-cam-mode">CHASE CAM</div>
+  </div>
+
+  <!-- 하단 PIP 라벨 프레임 (뷰포트는 캔버스에 직접 렌더링됨) -->
+  <div class="pip-frame" id="pip-0"><span class="pip-label">DOWN CAM</span><span class="crosshair">+</span></div>
+  <div class="pip-frame" id="pip-1"><span class="pip-label">FORWARD CAM</span></div>
+  <div class="pip-frame" id="pip-2"><span class="pip-label">PAD CAM</span></div>
+
+  <!-- 중앙 배너 -->
+  <div id="banner">
+    <h1 id="banner-title"></h1>
+    <p id="banner-body"></p>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
