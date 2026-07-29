@@ -23,7 +23,7 @@ if [ "$run_id" = "$prev" ] || [ "$run_id" = "0" ]; then echo "빌드 실행을 �
 
 gh run watch "$run_id" --exit-status
 rm -rf release && mkdir release
-gh run download "$run_id" --dir release
+gh run download "$run_id" --dir release -p "MoonDescent-*"
 echo
 echo "=== 배포 파일 완성 (release/) ==="
 find release -type f | sed 's/^/  /'
