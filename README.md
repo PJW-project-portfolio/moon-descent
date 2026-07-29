@@ -22,8 +22,24 @@ python main.py
 ## 간편 실행과 배포
 
 - **내 컴퓨터(리눅스)**: 최초 1회 `./build.sh`를 실행합니다. 이후 윈도우 키를 누르고 "Lunar Lander"를 검색해 클릭하면 됩니다. 독에 고정하려면 아이콘을 우클릭하고 "즐겨찾기에 추가"를 선택하세요. 코드를 수정한 뒤에는 `./build.sh`를 다시 실행합니다.
-- **다른 사람에게 공유**: `./release.sh` 한 줄로 GitHub 클라우드에서 Windows/맥/리눅스 실행 파일 3종이 빌드되어 `release/`에 저장됩니다. 각 zip/tar.gz에는 상대방용 `실행방법.txt`가 동봉됩니다. Windows 사용자에게는 카카오톡이나 Dropbox 공유 링크로 전달하세요(Gmail은 exe가 든 zip을 차단합니다).
+- **다른 사람에게 공유**: `./release.sh` 한 줄로 GitHub 클라우드에서 Windows/맥/리눅스 실행 파일 3종이 빌드되어 `release/`에 저장됩니다. 각 zip/tar.gz에는 상대방용 `실행방법.txt`가 동봉됩니다. 전달 방법은 아래 "카카오톡으로 보낼 파일 고르기"를 참고하세요.
 - **최초 1회 준비물**: GitHub 계정, `gh auth login` 로그인, 비공개 저장소(이미 설정되어 있음).
+
+### 카카오톡으로 보낼 파일 고르기
+
+`./release.sh` 실행 후 `release/` 폴더에 생기는 세 파일 중, 상대방 컴퓨터에 맞는 **하나만** 보내면 됩니다.
+
+| 상대방 컴퓨터 | 보낼 파일 | 크기 |
+|---|---|---|
+| Windows (대부분의 경우) | `release/LunarLander-windows/LunarLander-windows.zip` | 약 15MB |
+| 맥 | `release/LunarLander-macos/LunarLander-macos.zip` | 약 14MB |
+| 리눅스 | `release/LunarLander-linux/LunarLander-linux.tar.gz` | 약 28MB |
+
+상대방 OS를 모르면 Windows용을 보내는 것이 가장 확률이 높고, 가능하면 물어보고 맞는 파일을 보내세요.
+세 파일 모두 안에 `실행방법.txt`가 들어 있어 받은 사람이 보안 경고 처리까지 따라 할 수 있습니다.
+
+파일 위치: 파일 탐색기에서 `Dropbox → Personal Project → lunar_lander_game → release` 폴더를 열면 됩니다.
+카카오톡 대화창에 파일을 끌어다 놓으면 전송됩니다. (Gmail 첨부는 exe가 든 zip을 차단하므로 메일 대신 카카오톡이나 Dropbox 공유 링크를 사용하세요.)
 
 ## 조작법
 
