@@ -18,3 +18,5 @@ P                  일시정지
 R                  재시작
 Esc                종료
 Enter / Space      시작·다음
+
+설치가 어렵다면 컴퓨터 브라우저에서 바로 플레이할 수 있습니다: https://pjw-project-portfolio.github.io/moon-descent/

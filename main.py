@@ -1,11 +1,13 @@
-"""Launch the Moon Descent game."""
+"""Entry point for Moon Descent (desktop and web builds)."""
+
+import asyncio
 
 from lunar_lander.app import LunarLanderApp
 
 
-def main() -> None:
-    LunarLanderApp().run()
+async def main() -> None:
+    await LunarLanderApp().run_async()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

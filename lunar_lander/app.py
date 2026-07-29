@@ -1,6 +1,7 @@
 """Pygame application and vector-style renderer."""
 
 from dataclasses import dataclass
+import asyncio
 import math
 import random
 
@@ -57,6 +58,9 @@ class LunarLanderApp:
         ]
 
     def run(self) -> None:
+        asyncio.run(self.run_async())
+
+    async def run_async(self) -> None:
         while self.running:
             dt = self.clock.tick(self.settings.target_fps) / 1000.0
             self._handle_events()
@@ -65,6 +69,7 @@ class LunarLanderApp:
             self._emit_effects(dt)
             self._update_particles(dt)
             self._draw()
+            await asyncio.sleep(0)
         pygame.quit()
 
     def _handle_events(self) -> None:

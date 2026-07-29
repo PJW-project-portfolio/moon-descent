@@ -119,3 +119,32 @@ jobs:
         with:
           name: MoonDescent-macos
           path: MoonDescent-macos.zip
+
+  build-web:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build web bundle
+        run: PYTHON=python bash scripts/build_web.sh
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web-src/build/web
+
+  deploy-pages:
+    needs: build-web
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

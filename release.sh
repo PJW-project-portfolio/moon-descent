@@ -30,3 +30,4 @@ find release -type f | sed 's/^/  /'
 echo
 echo "전달: Windows → MoonDescent-windows.zip, 맥 → MoonDescent-macos.zip, 리눅스 → MoonDescent-linux.tar.gz"
 echo "카카오톡이나 Dropbox 공유 링크로 보내세요. (Gmail 첨부는 exe가 든 zip을 차단합니다)"
+echo "웹 버전도 자동 배포되었습니다. 링크만 공유해도 됩니다: https://pjw-project-portfolio.github.io/moon-descent/"
