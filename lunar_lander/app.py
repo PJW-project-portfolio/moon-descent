@@ -1,5 +1,9 @@
 """Pygame application and vector-style renderer."""
 
+# 웹(pygbag) 런타임은 pygame.init() 전에 pygame.font 속성이 없어, 시그니처의
+# pygame.font.Font 힌트가 import 시점에 평가되면 실패한다. 지연 평가로 전환.
+from __future__ import annotations
+
 from dataclasses import dataclass
 import asyncio
 import math
