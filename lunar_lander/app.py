@@ -33,7 +33,7 @@ class Particle:
 class LunarLanderApp:
     def __init__(self, seed: int | None = None) -> None:
         pygame.init()
-        pygame.display.set_caption("LUNAR LANDER")
+        pygame.display.set_caption("MOON DESCENT")
         self.settings = GameSettings()
         self.screen = pygame.display.set_mode(
             (self.settings.screen_width, self.settings.screen_height)
@@ -172,7 +172,7 @@ class LunarLanderApp:
             pygame.draw.circle(self.screen, DIM, (x, y), radius)
 
     def _draw_title(self) -> None:
-        self._center_text("LUNAR LANDER", 150, self.font_large, PHOSPHOR)
+        self._center_text("MOON DESCENT", 150, self.font_large, PHOSPHOR)
         self._center_text(
             "VECTOR FLIGHT SIMULATION", 232, self.font_small, AMBER
         )

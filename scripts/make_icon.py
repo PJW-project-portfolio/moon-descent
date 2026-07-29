@@ -1,4 +1,4 @@
-"""Generate the Lunar Lander application icon."""
+"""Generate the Moon Descent application icon."""
 
 import os
 from pathlib import Path

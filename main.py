@@ -1,4 +1,4 @@
-"""Launch the Lunar Lander game."""
+"""Launch the Moon Descent game."""
 
 from lunar_lander.app import LunarLanderApp
 

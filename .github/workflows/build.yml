@@ -34,26 +34,26 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt -r requirements-build.txt
       - name: Build
-        run: pyinstaller --noconfirm --onefile --name LunarLander --add-data "lunar_lander/assets/fonts:lunar_lander/assets/fonts" main.py
+        run: pyinstaller --noconfirm --onefile --name MoonDescent --add-data "lunar_lander/assets/fonts:lunar_lander/assets/fonts" main.py
       - name: Frozen smoke test
         env:
           SDL_VIDEODRIVER: dummy
           SDL_AUDIODRIVER: dummy
         run: |
-          ./dist/LunarLander & pid=$!
+          ./dist/MoonDescent & pid=$!
           sleep 8
           kill -0 "$pid"
           kill "$pid"
       - name: Package
         run: |
           mkdir pkg
-          cp dist/LunarLander pkg/
+          cp dist/MoonDescent pkg/
           cp docs/HOW-TO-RUN-LINUX.txt "pkg/실행방법.txt"
-          tar -czf LunarLander-linux.tar.gz -C pkg .
+          tar -czf MoonDescent-linux.tar.gz -C pkg .
       - uses: actions/upload-artifact@v4
         with:
-          name: LunarLander-linux
-          path: LunarLander-linux.tar.gz
+          name: MoonDescent-linux
+          path: MoonDescent-linux.tar.gz
 
   build-windows:
     needs: test
@@ -67,25 +67,25 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt -r requirements-build.txt
       - name: Build
-        run: pyinstaller --noconfirm --onedir --windowed --name LunarLander --icon assets/icon.png --add-data "lunar_lander/assets/fonts;lunar_lander/assets/fonts" main.py
+        run: pyinstaller --noconfirm --onedir --windowed --name MoonDescent --icon assets/icon.png --add-data "lunar_lander/assets/fonts;lunar_lander/assets/fonts" main.py
       - name: Frozen smoke test
         shell: pwsh
         run: |
           $env:SDL_VIDEODRIVER = "dummy"
           $env:SDL_AUDIODRIVER = "dummy"
-          $p = Start-Process -FilePath "dist\LunarLander\LunarLander.exe" -PassThru
+          $p = Start-Process -FilePath "dist\MoonDescent\MoonDescent.exe" -PassThru
           Start-Sleep -Seconds 8
           if ($p.HasExited) { Write-Error "SMOKE FAIL: exe exited early"; exit 1 }
           Stop-Process -Id $p.Id -Force
       - name: Package
         shell: pwsh
         run: |
-          Copy-Item "docs/HOW-TO-RUN-WINDOWS.txt" "dist/LunarLander/실행방법.txt"
-          Compress-Archive -Path dist/LunarLander -DestinationPath LunarLander-windows.zip
+          Copy-Item "docs/HOW-TO-RUN-WINDOWS.txt" "dist/MoonDescent/실행방법.txt"
+          Compress-Archive -Path dist/MoonDescent -DestinationPath MoonDescent-windows.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: LunarLander-windows
-          path: LunarLander-windows.zip
+          name: MoonDescent-windows
+          path: MoonDescent-windows.zip
 
   build-macos:
     needs: test
@@ -99,23 +99,23 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt -r requirements-build.txt
       - name: Build
-        run: pyinstaller --noconfirm --windowed --name LunarLander --icon assets/icon.png --add-data "lunar_lander/assets/fonts:lunar_lander/assets/fonts" main.py
+        run: pyinstaller --noconfirm --windowed --name MoonDescent --icon assets/icon.png --add-data "lunar_lander/assets/fonts:lunar_lander/assets/fonts" main.py
       - name: Frozen smoke test
         env:
           SDL_VIDEODRIVER: dummy
           SDL_AUDIODRIVER: dummy
         run: |
-          ./dist/LunarLander.app/Contents/MacOS/LunarLander & pid=$!
+          ./dist/MoonDescent.app/Contents/MacOS/MoonDescent & pid=$!
           sleep 8
           kill -0 "$pid"
           kill "$pid"
       - name: Package
         run: |
-          mkdir LunarLander-macos
-          cp -R dist/LunarLander.app LunarLander-macos/
-          cp docs/HOW-TO-RUN-MACOS.txt "LunarLander-macos/실행방법.txt"
-          ditto -c -k --keepParent LunarLander-macos LunarLander-macos.zip
+          mkdir MoonDescent-macos
+          cp -R dist/MoonDescent.app MoonDescent-macos/
+          cp docs/HOW-TO-RUN-MACOS.txt "MoonDescent-macos/실행방법.txt"
+          ditto -c -k --keepParent MoonDescent-macos MoonDescent-macos.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: LunarLander-macos
-          path: LunarLander-macos.zip
+          name: MoonDescent-macos
+          path: MoonDescent-macos.zip

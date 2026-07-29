@@ -28,5 +28,5 @@ echo
 echo "=== 배포 파일 완성 (release/) ==="
 find release -type f | sed 's/^/  /'
 echo
-echo "전달: Windows → LunarLander-windows.zip, 맥 → LunarLander-macos.zip, 리눅스 → LunarLander-linux.tar.gz"
+echo "전달: Windows → MoonDescent-windows.zip, 맥 → MoonDescent-macos.zip, 리눅스 → MoonDescent-linux.tar.gz"
 echo "카카오톡이나 Dropbox 공유 링크로 보내세요. (Gmail 첨부는 exe가 든 zip을 차단합니다)"

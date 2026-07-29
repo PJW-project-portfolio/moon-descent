@@ -1,9 +1,9 @@
-Lunar Lander 실행 방법 (Linux)
+Moon Descent 실행 방법 (Linux)
 
 터미널에서 파일이 있는 폴더로 이동한 뒤 아래 명령을 차례로 입력하세요.
 
-tar xzf LunarLander-linux.tar.gz
-./LunarLander
+tar xzf MoonDescent-linux.tar.gz
+./MoonDescent
 
 조작법
 

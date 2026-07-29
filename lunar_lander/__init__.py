@@ -1,4 +1,4 @@
-"""Core package for the Lunar Lander arcade game."""
+"""Core package for the Moon Descent arcade game."""
 
 from .game_state import GameSession, GameState
 from .models import Lander, LandingResult

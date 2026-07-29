@@ -1,4 +1,4 @@
-# Lunar Lander
+# Moon Descent
 
 1979년 아케이드 게임 감성으로 만든 Python/Pygame 기반의 2D 달 착륙 게임입니다.
 제한된 연료로 착륙선의 자세와 속도를 제어해 표시된 착륙 지점에 안전하게
@@ -21,7 +21,7 @@ python main.py
 
 ## 간편 실행과 배포
 
-- **내 컴퓨터(리눅스)**: 최초 1회 `./build.sh`를 실행합니다. 이후 윈도우 키를 누르고 "Lunar Lander"를 검색해 클릭하면 됩니다. 독에 고정하려면 아이콘을 우클릭하고 "즐겨찾기에 추가"를 선택하세요. 코드를 수정한 뒤에는 `./build.sh`를 다시 실행합니다.
+- **내 컴퓨터(리눅스)**: 최초 1회 `./build.sh`를 실행합니다. 이후 윈도우 키를 누르고 "Moon Descent"를 검색해 클릭하면 됩니다. 독에 고정하려면 아이콘을 우클릭하고 "즐겨찾기에 추가"를 선택하세요. 코드를 수정한 뒤에는 `./build.sh`를 다시 실행합니다.
 - **다른 사람에게 공유**: `./release.sh` 한 줄로 GitHub 클라우드에서 Windows/맥/리눅스 실행 파일 3종이 빌드되어 `release/`에 저장됩니다. 각 zip/tar.gz에는 상대방용 `실행방법.txt`가 동봉됩니다. 전달 방법은 아래 "카카오톡으로 보낼 파일 고르기"를 참고하세요.
 - **최초 1회 준비물**: GitHub 계정, `gh auth login` 로그인, 비공개 저장소(이미 설정되어 있음).
 
@@ -31,9 +31,9 @@ python main.py
 
 | 상대방 컴퓨터 | 보낼 파일 | 크기 |
 |---|---|---|
-| Windows (대부분의 경우) | `release/LunarLander-windows/LunarLander-windows.zip` | 약 15MB |
-| 맥 | `release/LunarLander-macos/LunarLander-macos.zip` | 약 14MB |
-| 리눅스 | `release/LunarLander-linux/LunarLander-linux.tar.gz` | 약 28MB |
+| Windows (대부분의 경우) | `release/MoonDescent-windows/MoonDescent-windows.zip` | 약 15MB |
+| 맥 | `release/MoonDescent-macos/MoonDescent-macos.zip` | 약 14MB |
+| 리눅스 | `release/MoonDescent-linux/MoonDescent-linux.tar.gz` | 약 28MB |
 
 상대방 OS를 모르면 Windows용을 보내는 것이 가장 확률이 높고, 가능하면 물어보고 맞는 파일을 보내세요.
 세 파일 모두 안에 `실행방법.txt`가 들어 있어 받은 사람이 보안 경고 처리까지 따라 할 수 있습니다.
