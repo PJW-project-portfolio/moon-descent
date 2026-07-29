@@ -1,0 +1,121 @@
+name: build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+      - name: Headless smoke test
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+        run: python -c "from lunar_lander.app import LunarLanderApp; app = LunarLanderApp(seed=1); app._draw(); print('SMOKE OK')"
+
+  build-linux:
+    needs: test
+    runs-on: ubuntu-22.04 # glibc 2.35 하한. 2026-09-17부터 brownout → 이후 ubuntu-24.04로 변경
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt -r requirements-build.txt
+      - name: Build
+        run: pyinstaller --noconfirm --onefile --name LunarLander --add-data "lunar_lander/assets/fonts:lunar_lander/assets/fonts" main.py
+      - name: Frozen smoke test
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+        run: |
+          ./dist/LunarLander & pid=$!
+          sleep 8
+          kill -0 "$pid"
+          kill "$pid"
+      - name: Package
+        run: |
+          mkdir pkg
+          cp dist/LunarLander pkg/
+          cp docs/HOW-TO-RUN-LINUX.txt "pkg/실행방법.txt"
+          tar -czf LunarLander-linux.tar.gz -C pkg .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LunarLander-linux
+          path: LunarLander-linux.tar.gz
+
+  build-windows:
+    needs: test
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt -r requirements-build.txt
+      - name: Build
+        run: pyinstaller --noconfirm --onedir --windowed --name LunarLander --icon assets/icon.png --add-data "lunar_lander/assets/fonts;lunar_lander/assets/fonts" main.py
+      - name: Frozen smoke test
+        shell: pwsh
+        run: |
+          $env:SDL_VIDEODRIVER = "dummy"
+          $env:SDL_AUDIODRIVER = "dummy"
+          $p = Start-Process -FilePath "dist\LunarLander\LunarLander.exe" -PassThru
+          Start-Sleep -Seconds 8
+          if ($p.HasExited) { Write-Error "SMOKE FAIL: exe exited early"; exit 1 }
+          Stop-Process -Id $p.Id -Force
+      - name: Package
+        shell: pwsh
+        run: |
+          Copy-Item "docs/HOW-TO-RUN-WINDOWS.txt" "dist/LunarLander/실행방법.txt"
+          Compress-Archive -Path dist/LunarLander -DestinationPath LunarLander-windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LunarLander-windows
+          path: LunarLander-windows.zip
+
+  build-macos:
+    needs: test
+    runs-on: macos-latest # arm64(Apple Silicon). Intel 필요시 macos-15-intel(무료, 2027-08까지) 잡 추가
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt -r requirements-build.txt
+      - name: Build
+        run: pyinstaller --noconfirm --windowed --name LunarLander --icon assets/icon.png --add-data "lunar_lander/assets/fonts:lunar_lander/assets/fonts" main.py
+      - name: Frozen smoke test
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+        run: |
+          ./dist/LunarLander.app/Contents/MacOS/LunarLander & pid=$!
+          sleep 8
+          kill -0 "$pid"
+          kill "$pid"
+      - name: Package
+        run: |
+          mkdir LunarLander-macos
+          cp -R dist/LunarLander.app LunarLander-macos/
+          cp docs/HOW-TO-RUN-MACOS.txt "LunarLander-macos/실행방법.txt"
+          ditto -c -k --keepParent LunarLander-macos LunarLander-macos.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LunarLander-macos
+          path: LunarLander-macos.zip

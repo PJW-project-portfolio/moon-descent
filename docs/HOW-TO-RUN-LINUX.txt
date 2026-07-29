@@ -1,0 +1,16 @@
+Lunar Lander 실행 방법 (Linux)
+
+터미널에서 파일이 있는 폴더로 이동한 뒤 아래 명령을 차례로 입력하세요.
+
+tar xzf LunarLander-linux.tar.gz
+./LunarLander
+
+조작법
+
+키                 기능
+← / →              착륙선 회전
+↑ 또는 Space       추진
+P                  일시정지
+R                  재시작
+Esc                종료
+Enter / Space      시작·다음

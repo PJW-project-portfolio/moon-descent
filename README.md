@@ -19,6 +19,12 @@ python -m pip install -r requirements.txt
 python main.py
 ```
 
+## 간편 실행과 배포
+
+- **내 컴퓨터(리눅스)**: 최초 1회 `./build.sh`를 실행합니다. 이후 윈도우 키를 누르고 "Lunar Lander"를 검색해 클릭하면 됩니다. 독에 고정하려면 아이콘을 우클릭하고 "즐겨찾기에 추가"를 선택하세요. 코드를 수정한 뒤에는 `./build.sh`를 다시 실행합니다.
+- **다른 사람에게 공유**: `./release.sh` 한 줄로 GitHub 클라우드에서 Windows/맥/리눅스 실행 파일 3종이 빌드되어 `release/`에 저장됩니다. 각 zip/tar.gz에는 상대방용 `실행방법.txt`가 동봉됩니다. Windows 사용자에게는 카카오톡이나 Dropbox 공유 링크로 전달하세요(Gmail은 exe가 든 zip을 차단합니다).
+- **최초 1회 준비물**: GitHub 계정, `gh auth login` 로그인, 비공개 저장소(이미 설정되어 있음).
+
 ## 조작법
 
 | 키 | 기능 |
