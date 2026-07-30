@@ -15,6 +15,11 @@ class StageDefinitionTests(unittest.TestCase):
             [1.62, 3.71, 8.87, 1.31, 1.35],
         )
 
+        self.assertEqual(
+            [stage.par_time_seconds for stage in STAGES],
+            [45.0, 50.0, 60.0, 45.0, 45.0],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

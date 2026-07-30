@@ -83,22 +83,49 @@ class LunarLanderApp:
                 self.running = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    self.running = False
+                    if self.session.state == GameState.LEADERBOARD:
+                        self.session.return_to_title()
+                    else:
+                        self.running = False
                 elif self.session.state == GameState.TITLE and event.key in (
                     pygame.K_RETURN,
                     pygame.K_SPACE,
                 ):
                     self.session.new_game()
+                elif (
+                    self.session.state == GameState.TITLE
+                    and event.key == pygame.K_l
+                ):
+                    self.session.show_leaderboard()
+                elif self.session.state == GameState.LEADERBOARD:
+                    if event.key == pygame.K_RETURN:
+                        self.session.return_to_title()
+                elif self.session.state == GameState.STAGE_CLEAR:
+                    if event.key == pygame.K_RETURN:
+                        self.session.advance_after_result()
+                    elif event.key == pygame.K_l:
+                        self.particles.clear()
+                        self.session.save_score_and_end()
+                elif self.session.state == GameState.VICTORY:
+                    if event.key == pygame.K_RETURN:
+                        self.particles.clear()
+                        self.session.show_leaderboard()
                 elif event.key == pygame.K_p:
                     self.session.toggle_pause()
                 elif event.key == pygame.K_r:
                     self.particles.clear()
                     self.session.restart()
-                elif self.session.state in (
-                    GameState.LANDED,
-                    GameState.CRASHED,
-                ) and event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                elif self.session.state == GameState.CRASHED and event.key in (
+                    pygame.K_RETURN,
+                    pygame.K_SPACE,
+                ):
                     self.session.advance_after_result()
+                elif (
+                    self.session.state == GameState.GAME_OVER
+                    and event.key == pygame.K_l
+                ):
+                    self.particles.clear()
+                    self.session.show_leaderboard()
                 elif self.session.state == GameState.GAME_OVER and event.key in (
                     pygame.K_RETURN,
                     pygame.K_SPACE,
@@ -179,12 +206,14 @@ class LunarLanderApp:
         self.screen.fill(BLACK)
         camera_x = (
             0.0
-            if self.session.state == GameState.TITLE
+            if self.session.state in (GameState.TITLE, GameState.LEADERBOARD)
             else self.camera_x
         )
         self._draw_stars(camera_x)
         if self.session.state == GameState.TITLE:
             self._draw_title()
+        elif self.session.state == GameState.LEADERBOARD:
+            self._draw_leaderboard()
         else:
             self._draw_world()
             self._draw_hud()
@@ -206,6 +235,7 @@ class LunarLanderApp:
             "UP / SPACE     MAIN THRUSTER",
             "P              PAUSE",
             "R              RESTART",
+            "L              LEADERBOARD",
             "ESC            QUIT",
         )
         for index, line in enumerate(controls):
@@ -221,6 +251,47 @@ class LunarLanderApp:
             610,
             self.font_small,
             DIM,
+        )
+
+    def _draw_leaderboard(self) -> None:
+        self._center_text("LEADERBOARD", 75, self.font_large, PHOSPHOR)
+        self._center_text(
+            "RANK  SCORE  BODY  DATE",
+            175,
+            self.font_small,
+            AMBER,
+        )
+        if not self.session.leaderboard.entries:
+            self._center_text(
+                "NO RECORDED MISSIONS",
+                260,
+                self.font_small,
+                DIM,
+            )
+        for rank, entry in enumerate(
+            self.session.leaderboard.entries,
+            start=1,
+        ):
+            line = (
+                f"{rank:>2}    {entry['score']:>6}  "
+                f"{entry['body']:<8}  {entry['date']}"
+            )
+            color = (
+                AMBER
+                if entry is self.session.fresh_leaderboard_entry
+                else WHITE
+            )
+            self._center_text(
+                line,
+                215 + (rank - 1) * 34,
+                self.font_small,
+                color,
+            )
+        self._center_text(
+            "ENTER / ESC  TITLE",
+            650,
+            self.font_small,
+            PHOSPHOR,
         )
 
     def _draw_world(self) -> None:
@@ -344,30 +415,68 @@ class LunarLanderApp:
         pygame.draw.rect(
             self.screen, DIM, (bar_x, bar_y, bar_width, bar_height), 1
         )
-        fill_width = int(bar_width * lander.fuel / self.settings.fuel_capacity)
+        capacity = self.settings.fuel_capacity
+        fill_width = int(
+            bar_width * min(1.0, max(0.0, lander.fuel / capacity))
+        )
         pygame.draw.rect(
             self.screen,
             warning_color,
             (bar_x, bar_y, fill_width, bar_height),
         )
+        if lander.fuel > capacity:
+            extension_width = int(
+                42
+                * min(
+                    1.0,
+                    (lander.fuel - capacity)
+                    / self.settings.max_time_bonus_fuel,
+                )
+            )
+            pygame.draw.rect(
+                self.screen,
+                AMBER,
+                (bar_x + bar_width + 4, bar_y, extension_width, bar_height),
+            )
 
     def _draw_overlay(self) -> None:
         state = self.session.state
         if state == GameState.PAUSED:
             self._panel_message("PAUSED", "PRESS P TO RESUME", PHOSPHOR)
-        elif state == GameState.LANDED:
-            self._panel_message(
-                "TOUCHDOWN",
-                f"+{self.session.last_award} POINTS",
+        elif state == GameState.STAGE_CLEAR:
+            next_stage = self.session.next_stage
+            self._panel_lines(
+                f"{self.session.current_stage.name} CLEARED",
+                (
+                    f"+{self.session.last_award} POINTS",
+                    f"TIME {self.session.clear_elapsed:.1f}s  /  "
+                    f"FUEL BONUS +{self.session.last_fuel_bonus:.0f}",
+                    f"ENTER  NEXT: {next_stage.name if next_stage else ''}",
+                    "L  SAVE SCORE & END",
+                ),
                 PHOSPHOR,
             )
         elif state == GameState.CRASHED:
             self._panel_message("MODULE DESTROYED", "RETRYING...", RED)
         elif state == GameState.GAME_OVER:
-            self._panel_message(
+            self._panel_lines(
                 "MISSION ENDED",
-                f"FINAL {self.session.final_score:06d} - ENTER TO RETRY",
+                (
+                    f"FINAL {self.session.final_score:06d}",
+                    "ENTER  RETRY",
+                    "L  LEADERBOARD",
+                ),
                 RED,
+            )
+        elif state == GameState.VICTORY:
+            self._panel_lines(
+                "MISSION COMPLETE",
+                (
+                    f"FINAL {self.session.final_score:06d}",
+                    "SCORE RECORDED",
+                    "ENTER  LEADERBOARD",
+                ),
+                PHOSPHOR,
             )
         elif self.session.stage_intro_active:
             stage = self.session.current_stage
@@ -376,6 +485,34 @@ class LunarLanderApp:
                 f"GRAVITY {stage.gravity_ms2:.2f} M/S2",
                 PHOSPHOR,
                 self.font_large,
+            )
+
+    def _panel_lines(
+        self,
+        title: str,
+        lines: tuple[str, ...],
+        color: tuple[int, int, int],
+    ) -> None:
+        panel_width = 720
+        panel_height = 135 + len(lines) * 35
+        panel = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)
+        panel.fill((0, 8, 6, 220))
+        pygame.draw.rect(panel, color, panel.get_rect(), 2)
+        panel_x = self.settings.screen_width / 2 - panel_width / 2
+        panel_y = self.settings.screen_height / 2 - panel_height / 2
+        self.screen.blit(panel, (panel_x, panel_y))
+        self._center_text(
+            title,
+            panel_y + 32,
+            self.font_medium,
+            color,
+        )
+        for index, line in enumerate(lines):
+            self._center_text(
+                line,
+                panel_y + 88 + index * 35,
+                self.font_small,
+                WHITE if index < 2 else PHOSPHOR,
             )
 
     def _panel_message(

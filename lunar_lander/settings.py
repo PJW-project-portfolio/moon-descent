@@ -3,6 +3,11 @@
 from dataclasses import dataclass
 
 
+# Progression tuning: reward fast clears without trivializing later stages.
+TIME_BONUS_FUEL_PER_SECOND = 0.6
+MAX_TIME_BONUS_FUEL = 30.0
+
+
 @dataclass(frozen=True)
 class GameSettings:
     screen_width: int = 1280
@@ -18,7 +23,8 @@ class GameSettings:
     fuel_capacity: float = 100.0
     starting_lives: int = 3
     fuel_burn_per_second: float = 15.0
-    landing_fuel_reward: float = 18.0
+    time_bonus_fuel_per_second: float = TIME_BONUS_FUEL_PER_SECOND
+    max_time_bonus_fuel: float = MAX_TIME_BONUS_FUEL
 
     safe_horizontal_speed: float = 35.0
     safe_vertical_speed: float = 45.0

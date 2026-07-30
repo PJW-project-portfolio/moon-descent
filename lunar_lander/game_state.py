@@ -1,11 +1,16 @@
 """Game progression independent of rendering."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
 import random
 
+from .leaderboard import Leaderboard, LeaderboardEntry
 from .models import Lander, LandingResult
-from .settings import GameSettings
+from .settings import (
+    GameSettings,
+    MAX_TIME_BONUS_FUEL,
+    TIME_BONUS_FUEL_PER_SECOND,
+)
 from .stages import STAGES, StageConfig
 from .terrain import Terrain
 
@@ -14,15 +19,31 @@ class GameState(Enum):
     TITLE = auto()
     PLAYING = auto()
     PAUSED = auto()
-    LANDED = auto()
+    STAGE_CLEAR = auto()
     CRASHED = auto()
     GAME_OVER = auto()
+    VICTORY = auto()
+    LEADERBOARD = auto()
+
+
+def calculate_time_bonus(
+    par_time_seconds: float,
+    elapsed_seconds: float,
+    fuel_per_second: float = TIME_BONUS_FUEL_PER_SECOND,
+    maximum_bonus: float = MAX_TIME_BONUS_FUEL,
+) -> float:
+    """Return the clamped fuel reward for finishing ahead of par."""
+    return min(
+        maximum_bonus,
+        max(0.0, (par_time_seconds - elapsed_seconds) * fuel_per_second),
+    )
 
 
 @dataclass
 class GameSession:
     settings: GameSettings
     rng: random.Random
+    leaderboard: Leaderboard = field(default_factory=Leaderboard)
     state: GameState = GameState.TITLE
     score: int = 0
     high_score: int = 0
@@ -34,15 +55,25 @@ class GameSession:
     stage_start_fuel: float = 100.0
     transition_elapsed: float = 0.0
     stage_intro_elapsed: float = 0.0
+    stage_elapsed: float = 0.0
+    clear_elapsed: float = 0.0
+    last_fuel_bonus: float = 0.0
     last_award: int = 0
+    fresh_leaderboard_entry: LeaderboardEntry | None = None
+    run_recorded: bool = False
 
     @classmethod
     def create(
         cls,
         settings: GameSettings | None = None,
         seed: int | None = None,
+        leaderboard: Leaderboard | None = None,
     ) -> "GameSession":
-        return cls(settings or GameSettings(), random.Random(seed))
+        return cls(
+            settings or GameSettings(),
+            random.Random(seed),
+            leaderboard if leaderboard is not None else Leaderboard(),
+        )
 
     @property
     def current_stage(self) -> StageConfig:
@@ -52,6 +83,12 @@ class GameSession:
     @property
     def gravity(self) -> float:
         return self.current_stage.gravity_ms2 * self.settings.pixels_per_meter
+
+    @property
+    def next_stage(self) -> StageConfig | None:
+        if self.stage >= len(STAGES):
+            return None
+        return STAGES[self.stage]
 
     @property
     def stage_intro_active(self) -> bool:
@@ -67,6 +104,10 @@ class GameSession:
         self.lives = self.settings.starting_lives
         self.stage = 1
         self.last_award = 0
+        self.clear_elapsed = 0.0
+        self.last_fuel_bonus = 0.0
+        self.fresh_leaderboard_entry = None
+        self.run_recorded = False
         self._prepare_round(self.settings.fuel_capacity)
 
     def _prepare_round(self, fuel: float) -> None:
@@ -89,6 +130,7 @@ class GameSession:
             fuel=fuel,
         )
         self.transition_elapsed = 0.0
+        self.stage_elapsed = 0.0
         self.state = GameState.PLAYING
 
     def toggle_pause(self) -> None:
@@ -111,11 +153,12 @@ class GameSession:
             remaining = max(0.0, dt)
             while remaining > 1e-9 and self.state == GameState.PLAYING:
                 step = min(remaining, 0.01)
+                self.stage_elapsed += step
                 self._update_playing(
                     step, rotation_direction, thrust_requested
                 )
                 remaining -= step
-        elif self.state in (GameState.LANDED, GameState.CRASHED):
+        elif self.state == GameState.CRASHED:
             self.transition_elapsed += dt
             if self.transition_elapsed >= self.settings.round_transition_seconds:
                 self.advance_after_result()
@@ -170,17 +213,26 @@ class GameSession:
             self.last_award = int((100 + softness * 100) * pad.multiplier)
             self.score += self.last_award
             self.high_score = max(self.high_score, self.score)
-            self.lander.fuel = min(
-                self.settings.fuel_capacity,
-                self.lander.fuel + self.settings.landing_fuel_reward,
+            self.clear_elapsed = self.stage_elapsed
+            self.last_fuel_bonus = calculate_time_bonus(
+                self.current_stage.par_time_seconds,
+                self.clear_elapsed,
+                self.settings.time_bonus_fuel_per_second,
+                self.settings.max_time_bonus_fuel,
             )
-            self.state = GameState.LANDED
+            if self.stage == len(STAGES):
+                self.final_score = self.score
+                self.record_run()
+                self.state = GameState.VICTORY
+            else:
+                self.state = GameState.STAGE_CLEAR
         else:
             self.last_award = 0
             self.lives = max(0, self.lives - 1)
             if self.lives == 0:
                 self.final_score = self.score
                 self.high_score = max(self.high_score, self.final_score)
+                self.record_run()
                 self.state = GameState.GAME_OVER
             else:
                 self.state = GameState.CRASHED
@@ -188,9 +240,11 @@ class GameSession:
     def advance_after_result(self) -> None:
         if self.lander is None:
             return
-        if self.state == GameState.LANDED:
-            fuel = self.lander.fuel
-            self.stage = min(self.stage + 1, len(STAGES))
+        if self.state == GameState.STAGE_CLEAR:
+            if self.stage >= len(STAGES):
+                return
+            fuel = self.settings.fuel_capacity + self.last_fuel_bonus
+            self.stage += 1
             self._prepare_round(fuel)
         elif self.state == GameState.CRASHED:
             retry_fuel = (
@@ -199,6 +253,32 @@ class GameSession:
                 else self.stage_start_fuel
             )
             self._spawn_lander(retry_fuel)
+
+    def record_run(self) -> LeaderboardEntry:
+        """Record this run at most once and expose it for UI highlighting."""
+        if self.run_recorded and self.fresh_leaderboard_entry is not None:
+            return self.fresh_leaderboard_entry
+        self.final_score = self.score
+        self.high_score = max(self.high_score, self.final_score)
+        self.fresh_leaderboard_entry = self.leaderboard.add_entry(
+            self.final_score,
+            self.current_stage.name,
+        )
+        self.run_recorded = True
+        return self.fresh_leaderboard_entry
+
+    def save_score_and_end(self) -> None:
+        if self.state != GameState.STAGE_CLEAR:
+            return
+        self.record_run()
+        self.state = GameState.LEADERBOARD
+
+    def show_leaderboard(self) -> None:
+        self.state = GameState.LEADERBOARD
+
+    def return_to_title(self) -> None:
+        self.state = GameState.TITLE
+        self.fresh_leaderboard_entry = None
 
     def restart(self) -> None:
         self.new_game()
