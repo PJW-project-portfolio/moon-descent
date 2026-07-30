@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 import random
 
-from .leaderboard import Leaderboard, LeaderboardEntry
+from .leaderboard import Leaderboard, LeaderboardEntry, apply_name_key
 from .models import Lander, LandingResult
 from .settings import (
     GameSettings,
@@ -23,6 +23,7 @@ class GameState(Enum):
     CRASHED = auto()
     GAME_OVER = auto()
     VICTORY = auto()
+    NAME_ENTRY = auto()
     LEADERBOARD = auto()
 
 
@@ -61,6 +62,7 @@ class GameSession:
     last_award: int = 0
     fresh_leaderboard_entry: LeaderboardEntry | None = None
     run_recorded: bool = False
+    name_input: str = ""
 
     @classmethod
     def create(
@@ -108,6 +110,7 @@ class GameSession:
         self.last_fuel_bonus = 0.0
         self.fresh_leaderboard_entry = None
         self.run_recorded = False
+        self.name_input = ""
         self._prepare_round(self.settings.fuel_capacity)
 
     def _prepare_round(self, fuel: float) -> None:
@@ -222,7 +225,6 @@ class GameSession:
             )
             if self.stage == len(STAGES):
                 self.final_score = self.score
-                self.record_run()
                 self.state = GameState.VICTORY
             else:
                 self.state = GameState.STAGE_CLEAR
@@ -232,7 +234,6 @@ class GameSession:
             if self.lives == 0:
                 self.final_score = self.score
                 self.high_score = max(self.high_score, self.final_score)
-                self.record_run()
                 self.state = GameState.GAME_OVER
             else:
                 self.state = GameState.CRASHED
@@ -254,7 +255,7 @@ class GameSession:
             )
             self._spawn_lander(retry_fuel)
 
-    def record_run(self) -> LeaderboardEntry:
+    def record_run(self, name: str) -> LeaderboardEntry:
         """Record this run at most once and expose it for UI highlighting."""
         if self.run_recorded and self.fresh_leaderboard_entry is not None:
             return self.fresh_leaderboard_entry
@@ -263,15 +264,42 @@ class GameSession:
         self.fresh_leaderboard_entry = self.leaderboard.add_entry(
             self.final_score,
             self.current_stage.name,
+            name=name,
         )
         self.run_recorded = True
         return self.fresh_leaderboard_entry
 
+    def begin_name_entry(self) -> None:
+        if self.state not in (
+            GameState.STAGE_CLEAR,
+            GameState.VICTORY,
+            GameState.GAME_OVER,
+        ):
+            return
+        self.name_input = ""
+        for char in self.leaderboard.last_name:
+            self.name_input = apply_name_key(self.name_input, char)
+        self.state = GameState.NAME_ENTRY
+
+    def edit_name(self, char: str) -> None:
+        if self.state == GameState.NAME_ENTRY:
+            self.name_input = apply_name_key(self.name_input, char)
+
+    def confirm_name_entry(self) -> LeaderboardEntry | None:
+        if self.state != GameState.NAME_ENTRY:
+            return None
+        entry = self.record_run(self.name_input or "PILOT")
+        self.state = GameState.LEADERBOARD
+        return entry
+
+    def skip_name_entry(self) -> None:
+        if self.state == GameState.NAME_ENTRY:
+            self.state = GameState.LEADERBOARD
+
     def save_score_and_end(self) -> None:
         if self.state != GameState.STAGE_CLEAR:
             return
-        self.record_run()
-        self.state = GameState.LEADERBOARD
+        self.begin_name_entry()
 
     def show_leaderboard(self) -> None:
         self.state = GameState.LEADERBOARD

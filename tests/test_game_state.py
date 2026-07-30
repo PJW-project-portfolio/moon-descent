@@ -132,7 +132,7 @@ class GameSessionTests(unittest.TestCase):
         self.assertEqual(session.lander.velocity_x, 0.0)
         self.assertEqual(session.lander.velocity_y, 0.0)
 
-    def test_third_crash_records_final_score_and_ends_game(self) -> None:
+    def test_third_crash_waits_for_callsign_before_recording(self) -> None:
         session = GameSession.create(seed=15)
         session.new_game()
         session.score = 321
@@ -164,11 +164,21 @@ class GameSessionTests(unittest.TestCase):
         self.assertEqual(session.lives, 0)
         self.assertEqual(session.final_score, 321)
         self.assertEqual(session.high_score, 321)
+        self.assertEqual(len(session.leaderboard.entries), 0)
+        session.begin_name_entry()
+        self.assertEqual(session.state, GameState.NAME_ENTRY)
+        for char in "ace-7":
+            session.edit_name(char)
+        session.confirm_name_entry()
+
+        self.assertEqual(session.state, GameState.LEADERBOARD)
         self.assertEqual(len(session.leaderboard.entries), 1)
         self.assertEqual(session.leaderboard.entries[0]["score"], 321)
         self.assertEqual(
             session.leaderboard.entries[0]["body"], "MOON"
         )
+        self.assertEqual(session.leaderboard.entries[0]["name"], "ACE-7")
+        self.assertEqual(session.leaderboard.last_name, "ACE-7")
         session.new_game()
         self.assertEqual(session.lives, 3)
         self.assertEqual(session.score, 0)
@@ -245,12 +255,19 @@ class GameSessionTests(unittest.TestCase):
         session.score = 512
         session.save_score_and_end()
 
+        self.assertEqual(session.state, GameState.NAME_ENTRY)
+        self.assertEqual(len(session.leaderboard.entries), 0)
+        for char in "pjw":
+            session.edit_name(char)
+        session.confirm_name_entry()
+
         self.assertEqual(session.state, GameState.LEADERBOARD)
         self.assertEqual(len(session.leaderboard.entries), 1)
         self.assertEqual(session.leaderboard.entries[0]["score"], 512)
         self.assertEqual(session.leaderboard.entries[0]["body"], "VENUS")
+        self.assertEqual(session.leaderboard.entries[0]["name"], "PJW")
 
-    def test_venus_landing_enters_victory_and_records_score(self) -> None:
+    def test_venus_landing_waits_for_callsign_and_empty_uses_pilot(self) -> None:
         session = GameSession.create(seed=11)
         session.new_game()
         session.stage = len(STAGES)
@@ -272,10 +289,42 @@ class GameSessionTests(unittest.TestCase):
         self.assertEqual(session.current_stage, STAGES[-1])
         self.assertEqual(session.state, GameState.VICTORY)
         self.assertEqual(session.final_score, session.score)
+        self.assertEqual(len(session.leaderboard.entries), 0)
+        session.begin_name_entry()
+        session.confirm_name_entry()
+
+        self.assertEqual(session.state, GameState.LEADERBOARD)
         self.assertEqual(len(session.leaderboard.entries), 1)
         self.assertEqual(
             session.leaderboard.entries[0]["body"], "VENUS"
         )
+        self.assertEqual(session.leaderboard.entries[0]["name"], "PILOT")
+
+    def test_name_entry_prefills_last_name_and_skip_does_not_record(self) -> None:
+        session = GameSession.create(seed=16)
+        session.new_game()
+        session.leaderboard.last_name = "ace-9"
+        session.state = GameState.STAGE_CLEAR
+
+        session.begin_name_entry()
+
+        self.assertEqual(session.name_input, "ACE-9")
+        session.skip_name_entry()
+        self.assertEqual(session.state, GameState.LEADERBOARD)
+        self.assertEqual(session.leaderboard.entries, [])
+
+    def test_record_run_with_name_remains_idempotent(self) -> None:
+        session = GameSession.create(seed=17)
+        session.new_game()
+        session.score = 900
+
+        first = session.record_run("EAGLE")
+        second = session.record_run("OTHER")
+
+        self.assertIs(first, second)
+        self.assertEqual(len(session.leaderboard.entries), 1)
+        self.assertEqual(session.leaderboard.entries[0]["name"], "EAGLE")
+        self.assertEqual(session.leaderboard.last_name, "EAGLE")
 
     def test_time_bonus_under_par(self) -> None:
         self.assertAlmostEqual(calculate_time_bonus(45.0, 30.0), 9.0)
