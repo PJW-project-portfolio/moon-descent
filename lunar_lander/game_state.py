@@ -6,6 +6,7 @@ import random
 
 from .models import Lander, LandingResult
 from .settings import GameSettings
+from .stages import STAGES, StageConfig
 from .terrain import Terrain
 
 
@@ -32,6 +33,7 @@ class GameSession:
     lander: Lander | None = None
     stage_start_fuel: float = 100.0
     transition_elapsed: float = 0.0
+    stage_intro_elapsed: float = 0.0
     last_award: int = 0
 
     @classmethod
@@ -43,9 +45,21 @@ class GameSession:
         return cls(settings or GameSettings(), random.Random(seed))
 
     @property
+    def current_stage(self) -> StageConfig:
+        stage_index = min(max(self.stage - 1, 0), len(STAGES) - 1)
+        return STAGES[stage_index]
+
+    @property
     def gravity(self) -> float:
-        difficulty_scale = 1.0 + min(self.stage - 1, 12) * 0.05
-        return self.settings.base_gravity * difficulty_scale
+        return self.current_stage.gravity_ms2 * self.settings.pixels_per_meter
+
+    @property
+    def stage_intro_active(self) -> bool:
+        return (
+            self.state == GameState.PLAYING
+            and self.stage_intro_elapsed
+            < self.settings.round_transition_seconds
+        )
 
     def new_game(self) -> None:
         self.score = 0
@@ -58,12 +72,13 @@ class GameSession:
     def _prepare_round(self, fuel: float) -> None:
         self.stage_start_fuel = fuel
         self.terrain = Terrain.generate(
-            self.settings.screen_width,
+            int(self.settings.world_width),
             self.settings.screen_height,
             self.stage,
             self.rng,
         )
         self._spawn_lander(fuel)
+        self.stage_intro_elapsed = 0.0
 
     def _spawn_lander(self, fuel: float) -> None:
         self.lander = Lander(
@@ -89,6 +104,10 @@ class GameSession:
         thrust_requested: bool = False,
     ) -> None:
         if self.state == GameState.PLAYING:
+            self.stage_intro_elapsed = min(
+                self.settings.round_transition_seconds,
+                self.stage_intro_elapsed + max(0.0, dt),
+            )
             remaining = max(0.0, dt)
             while remaining > 1e-9 and self.state == GameState.PLAYING:
                 step = min(remaining, 0.01)
@@ -115,6 +134,7 @@ class GameSession:
             thrust_requested,
             self.gravity,
             self.settings,
+            self.current_stage.fuel_burn_per_second,
         )
 
         collision_points = self.lander.collision_points()
@@ -170,7 +190,7 @@ class GameSession:
             return
         if self.state == GameState.LANDED:
             fuel = self.lander.fuel
-            self.stage += 1
+            self.stage = min(self.stage + 1, len(STAGES))
             self._prepare_round(fuel)
         elif self.state == GameState.CRASHED:
             retry_fuel = (

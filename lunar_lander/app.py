@@ -14,6 +14,7 @@ import pygame
 from .game_state import GameSession, GameState
 from .settings import GameSettings
 from .resources import resource_path
+from .stages import STAGES
 
 
 BLACK = (4, 7, 9)
@@ -159,15 +160,29 @@ class LunarLanderApp:
             particle.life -= dt
             if particle.life <= 0.0:
                 continue
-            particle.x += particle.velocity_x * dt
+            particle.x = (
+                particle.x + particle.velocity_x * dt
+            ) % self.settings.world_width
             particle.y += particle.velocity_y * dt
             particle.velocity_y += 20.0 * dt
             alive.append(particle)
         self.particles = alive
 
+    @property
+    def camera_x(self) -> float:
+        lander = self.session.lander
+        if lander is None:
+            return 0.0
+        return lander.x - self.settings.screen_width / 2.0
+
     def _draw(self) -> None:
         self.screen.fill(BLACK)
-        self._draw_stars()
+        camera_x = (
+            0.0
+            if self.session.state == GameState.TITLE
+            else self.camera_x
+        )
+        self._draw_stars(camera_x)
         if self.session.state == GameState.TITLE:
             self._draw_title()
         else:
@@ -176,9 +191,10 @@ class LunarLanderApp:
             self._draw_overlay()
         pygame.display.flip()
 
-    def _draw_stars(self) -> None:
+    def _draw_stars(self, camera_x: float = 0.0) -> None:
         for x, y, radius in self.stars:
-            pygame.draw.circle(self.screen, DIM, (x, y), radius)
+            screen_x = (x - camera_x * 0.3) % self.settings.screen_width
+            pygame.draw.circle(self.screen, DIM, (screen_x, y), radius)
 
     def _draw_title(self) -> None:
         self._center_text("MOON DESCENT", 150, self.font_large, PHOSPHOR)
@@ -213,31 +229,65 @@ class LunarLanderApp:
         if terrain is None or lander is None:
             return
 
-        pygame.draw.polygon(self.screen, GROUND_FILL, list(terrain.polygon()))
-        pygame.draw.lines(self.screen, PHOSPHOR, False, terrain.points, 2)
+        camera_x = self.camera_x
+        world_width = float(terrain.width)
+        center_copy = math.floor(camera_x / world_width)
+        world_shifts = tuple(
+            copy_index * world_width
+            for copy_index in range(center_copy - 1, center_copy + 2)
+        )
+
+        for shift in world_shifts:
+            polygon = [
+                (x + shift - camera_x, y) for x, y in terrain.polygon()
+            ]
+            surface_line = [
+                (x + shift - camera_x, y) for x, y in terrain.points
+            ]
+            pygame.draw.polygon(self.screen, GROUND_FILL, polygon)
+            pygame.draw.lines(self.screen, PHOSPHOR, False, surface_line, 2)
+
         for pad in terrain.pads:
-            pygame.draw.line(
-                self.screen,
-                AMBER,
-                (pad.start_x, pad.y),
-                (pad.end_x, pad.y),
-                5,
-            )
             label = self.font_small.render(f"x{pad.multiplier}", True, AMBER)
-            self.screen.blit(
-                label,
-                (pad.center_x - label.get_width() / 2, pad.y + 10),
-            )
+            for shift in world_shifts:
+                start_x = pad.start_x + shift - camera_x
+                end_x = pad.end_x + shift - camera_x
+                if end_x < 0.0 or start_x > self.settings.screen_width:
+                    continue
+                pygame.draw.line(
+                    self.screen,
+                    AMBER,
+                    (start_x, pad.y),
+                    (end_x, pad.y),
+                    5,
+                )
+                self.screen.blit(
+                    label,
+                    (
+                        pad.center_x
+                        + shift
+                        - camera_x
+                        - label.get_width() / 2,
+                        pad.y + 10,
+                    ),
+                )
 
         if self.session.state not in (GameState.CRASHED, GameState.GAME_OVER):
-            self._draw_lander(lander.x, lander.y, lander.angle)
+            self._draw_lander(
+                self.settings.screen_width / 2.0,
+                lander.y,
+                lander.angle,
+            )
 
         for particle in self.particles:
+            screen_x = (particle.x - camera_x) % world_width
+            if screen_x > self.settings.screen_width:
+                continue
             radius = 2 if particle.life > 0.3 else 1
             pygame.draw.circle(
                 self.screen,
                 particle.color,
-                (int(particle.x), int(particle.y)),
+                (int(screen_x), int(particle.y)),
                 radius,
             )
 
@@ -265,15 +315,17 @@ class LunarLanderApp:
         left_lines = (
             f"SCORE {self.session.score:06d}",
             f"HIGH  {self.session.high_score:06d}",
-            f"STAGE {self.session.stage:02d}",
+            f"STAGE {self.session.stage}/{len(STAGES)} "
+            f"{self.session.current_stage.name}",
             f"LIVES {self.session.lives}",
         )
         ppm = self.settings.pixels_per_meter
         right_lines = (
-            f"ALT  {self.session.altitude:06.1f}",
+            f"ALT  {self.session.altitude / ppm:05.1f} M",
             f"H-S  {lander.velocity_x / ppm:+05.1f} M/S",
             f"V-S  {lander.velocity_y / ppm:+05.1f} M/S",
             f"FUEL {lander.fuel:06.1f}",
+            f"GRAV {self.session.current_stage.gravity_ms2:4.2f} M/S2",
         )
         for index, text in enumerate(left_lines):
             self._text(text, 28, 24 + index * 25, self.font_small, WHITE)
@@ -317,13 +369,23 @@ class LunarLanderApp:
                 f"FINAL {self.session.final_score:06d} - ENTER TO RETRY",
                 RED,
             )
+        elif self.session.stage_intro_active:
+            stage = self.session.current_stage
+            self._panel_message(
+                stage.name,
+                f"GRAVITY {stage.gravity_ms2:.2f} M/S2",
+                PHOSPHOR,
+                self.font_large,
+            )
 
     def _panel_message(
         self,
         title: str,
         subtitle: str,
         color: tuple[int, int, int],
+        title_font: pygame.font.Font | None = None,
     ) -> None:
+        title_font = title_font or self.font_medium
         panel = pygame.Surface((600, 150), pygame.SRCALPHA)
         panel.fill((0, 8, 6, 220))
         pygame.draw.rect(panel, color, panel.get_rect(), 2)
@@ -336,13 +398,15 @@ class LunarLanderApp:
         )
         self._center_text(
             title,
-            self.settings.screen_height / 2 - 48,
-            self.font_medium,
+            self.settings.screen_height / 2
+            - (62 if title_font is self.font_large else 48),
+            title_font,
             color,
         )
         self._center_text(
             subtitle,
-            self.settings.screen_height / 2 + 15,
+            self.settings.screen_height / 2
+            + (30 if title_font is self.font_large else 15),
             self.font_small,
             WHITE,
         )

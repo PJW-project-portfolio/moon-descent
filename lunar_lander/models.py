@@ -35,10 +35,16 @@ class Lander:
         thrust_requested: bool,
         gravity: float,
         settings: GameSettings,
+        fuel_burn_per_second: float | None = None,
     ) -> None:
         """Advance the lander with stable substeps and exact fuel-limited thrust."""
         remaining = max(0.0, dt)
         fired_thruster = False
+        fuel_burn = (
+            settings.fuel_burn_per_second
+            if fuel_burn_per_second is None
+            else fuel_burn_per_second
+        )
 
         while remaining > 1e-9:
             step = min(remaining, 0.01)
@@ -49,14 +55,11 @@ class Lander:
             self.velocity_y += gravity * step
             thrust_duration = 0.0
             if thrust_requested and self.fuel > 0.0:
-                if settings.fuel_burn_per_second > 0.0:
-                    thrust_duration = min(
-                        step, self.fuel / settings.fuel_burn_per_second
-                    )
+                if fuel_burn > 0.0:
+                    thrust_duration = min(step, self.fuel / fuel_burn)
                     self.fuel = max(
                         0.0,
-                        self.fuel
-                        - settings.fuel_burn_per_second * thrust_duration,
+                        self.fuel - fuel_burn * thrust_duration,
                     )
                 else:
                     thrust_duration = step

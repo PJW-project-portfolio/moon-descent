@@ -2,6 +2,7 @@ import unittest
 
 from lunar_lander.game_state import GameSession, GameState
 from lunar_lander.models import Lander
+from lunar_lander.stages import STAGES
 from lunar_lander.terrain import Terrain
 
 
@@ -15,6 +16,8 @@ class GameSessionTests(unittest.TestCase):
         self.assertEqual(session.final_score, 0)
         self.assertIsNotNone(session.terrain)
         self.assertIsNotNone(session.lander)
+        self.assertEqual(session.current_stage, STAGES[0])
+        self.assertEqual(session.terrain.width, session.settings.world_width)
         session.toggle_pause()
         self.assertEqual(session.state, GameState.PAUSED)
         session.toggle_pause()
@@ -52,10 +55,10 @@ class GameSessionTests(unittest.TestCase):
         assert session.terrain is not None
         assert session.lander is not None
         original_terrain = session.terrain
-        x = 10.0
-        session.lander.x = x
+        pad = session.terrain.pads[0]
+        session.lander.x = pad.center_x
         session.lander.y = (
-            session.terrain.height_at(x)
+            pad.y
             - session.settings.lander_bottom_offset
             - 0.1
         )
@@ -175,11 +178,64 @@ class GameSessionTests(unittest.TestCase):
         self.assertEqual(session.state, GameState.CRASHED)
         self.assertLess(session.lander.x, 200.0)
 
-    def test_gravity_increases_by_stage(self) -> None:
+    def test_moon_and_venus_gravity_drive_physics_in_pixels(self) -> None:
         session = GameSession.create(seed=7)
-        initial_gravity = session.gravity
-        session.stage = 5
-        self.assertGreater(session.gravity, initial_gravity)
+        session.new_game()
+        assert session.lander is not None
+        ppm = session.settings.pixels_per_meter
+
+        self.assertEqual(session.gravity, STAGES[0].gravity_ms2 * ppm)
+        session.update(0.1)
+        self.assertAlmostEqual(
+            session.lander.velocity_y,
+            STAGES[0].gravity_ms2 * ppm * 0.1,
+        )
+
+        session.stage = 3
+        session._spawn_lander(session.settings.fuel_capacity)
+        self.assertEqual(session.gravity, STAGES[2].gravity_ms2 * ppm)
+        session.update(0.1)
+        self.assertAlmostEqual(
+            session.lander.velocity_y,
+            STAGES[2].gravity_ms2 * ppm * 0.1,
+        )
+
+    def test_stage_fuel_burn_rate_overrides_settings_fallback(self) -> None:
+        session = GameSession.create(seed=10)
+        session.new_game()
+        session.stage = 2
+        session._spawn_lander(session.settings.fuel_capacity)
+        assert session.lander is not None
+        session.update(0.1, thrust_requested=True)
+        self.assertAlmostEqual(
+            session.lander.fuel,
+            session.settings.fuel_capacity
+            - STAGES[1].fuel_burn_per_second * 0.1,
+        )
+
+    def test_stage_caps_at_titan_after_landing(self) -> None:
+        session = GameSession.create(seed=11)
+        session.new_game()
+        session.stage = len(STAGES)
+        assert session.lander is not None
+        session.state = GameState.LANDED
+        session.advance_after_result()
+        self.assertEqual(session.stage, len(STAGES))
+        self.assertEqual(session.current_stage, STAGES[-1])
+        self.assertEqual(session.state, GameState.PLAYING)
+
+    def test_stage_intro_uses_transition_duration_on_stage_entry(self) -> None:
+        session = GameSession.create(seed=13)
+        session.new_game()
+        self.assertTrue(session.stage_intro_active)
+
+        session.stage_intro_elapsed = session.settings.round_transition_seconds
+        self.assertFalse(session.stage_intro_active)
+
+        assert session.lander is not None
+        session.state = GameState.LANDED
+        session.advance_after_result()
+        self.assertTrue(session.stage_intro_active)
 
 
 if __name__ == "__main__":

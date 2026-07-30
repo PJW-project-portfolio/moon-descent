@@ -1,4 +1,4 @@
-"""Procedural lunar terrain and landing pads."""
+"""Procedural terrain and landing pads."""
 
 from dataclasses import dataclass
 import bisect
@@ -43,15 +43,16 @@ class Terrain:
         rng = rng or random.Random()
         stage = max(1, stage)
 
-        base_widths = (170.0, 125.0, 88.0)
+        base_widths = (170.0, 135.0, 105.0, 78.0)
         shrink = min((stage - 1) * 5.0, 34.0)
-        centers = (
-            width * 0.22 + rng.uniform(-40.0, 40.0),
-            width * 0.52 + rng.uniform(-45.0, 45.0),
-            width * 0.80 + rng.uniform(-35.0, 35.0),
+        centers = tuple(
+            width * fraction + rng.uniform(-width * 0.015, width * 0.015)
+            for fraction in (0.125, 0.375, 0.625, 0.875)
         )
         pads: list[LandingPad] = []
-        for index, (center, base_width) in enumerate(zip(centers, base_widths)):
+        for multiplier, center, base_width in zip(
+            range(2, 6), centers, base_widths
+        ):
             pad_width = max(54.0, base_width - shrink)
             pad_y = rng.uniform(height * 0.76, height * 0.89)
             pads.append(
@@ -59,7 +60,7 @@ class Terrain:
                     center - pad_width / 2.0,
                     center + pad_width / 2.0,
                     pad_y,
-                    index + 1,
+                    multiplier,
                 )
             )
 
@@ -80,6 +81,8 @@ class Terrain:
                 y = current_y
             points.append((x, y))
 
+        # The strip is a loop, so its two endpoints must meet without a seam.
+        points[-1] = (float(width), points[0][1])
         return cls(width=width, height=height, points=points, pads=pads)
 
     @property

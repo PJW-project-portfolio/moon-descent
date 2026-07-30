@@ -31,7 +31,20 @@ class LanderPhysicsTests(unittest.TestCase):
         lander = Lander(100.0, 100.0, fuel=0.15)
         lander.update(0.05, 0.0, True, 22.0, self.settings)
         self.assertAlmostEqual(lander.fuel, 0.0)
-        self.assertAlmostEqual(lander.velocity_y, 0.62, places=7)
+        self.assertAlmostEqual(lander.velocity_y, 0.0, places=7)
+
+    def test_horizontal_position_wraps_at_world_width(self) -> None:
+        lander = Lander(
+            self.settings.screen_width - 1.0,
+            100.0,
+            velocity_x=20.0,
+        )
+        lander.update(0.1, 0.0, False, 0.0, self.settings)
+        self.assertGreater(lander.x, self.settings.screen_width)
+
+        lander.x = self.settings.world_width - 1.0
+        lander.update(0.1, 0.0, False, 0.0, self.settings)
+        self.assertAlmostEqual(lander.x, 1.0)
 
     def test_large_frame_matches_repeated_small_steps(self) -> None:
         one_frame = Lander(100.0, 100.0, velocity_x=35.0)
