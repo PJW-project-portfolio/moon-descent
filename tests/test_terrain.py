@@ -35,7 +35,7 @@ class TerrainTests(unittest.TestCase):
         settings = GameSettings()
         width = int(settings.world_width)
         early = Terrain.generate(width, 720, stage=1, rng=random.Random(8))
-        later = Terrain.generate(width, 720, stage=5, rng=random.Random(8))
+        later = Terrain.generate(width, 720, stage=3, rng=random.Random(8))
         for early_pad, later_pad in zip(early.pads, later.pads):
             self.assertLess(later_pad.width, early_pad.width)
 

@@ -33,7 +33,7 @@ class LeaderboardTests(unittest.TestCase):
                 path,
             ):
                 leaderboard = Leaderboard()
-                leaderboard.add_entry(420, "EUROPA", "2026-07-30")
+                leaderboard.add_entry(420, "MARS", "2026-07-30")
                 reloaded = Leaderboard()
 
             self.assertEqual(
@@ -41,7 +41,7 @@ class LeaderboardTests(unittest.TestCase):
                 [
                     {
                         "score": 420,
-                        "body": "EUROPA",
+                        "body": "MARS",
                         "date": "2026-07-30",
                     }
                 ],

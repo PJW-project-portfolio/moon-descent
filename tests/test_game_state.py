@@ -250,7 +250,7 @@ class GameSessionTests(unittest.TestCase):
         self.assertEqual(session.leaderboard.entries[0]["score"], 512)
         self.assertEqual(session.leaderboard.entries[0]["body"], "VENUS")
 
-    def test_titan_landing_enters_victory_and_records_score(self) -> None:
+    def test_venus_landing_enters_victory_and_records_score(self) -> None:
         session = GameSession.create(seed=11)
         session.new_game()
         session.stage = len(STAGES)
@@ -274,7 +274,7 @@ class GameSessionTests(unittest.TestCase):
         self.assertEqual(session.final_score, session.score)
         self.assertEqual(len(session.leaderboard.entries), 1)
         self.assertEqual(
-            session.leaderboard.entries[0]["body"], "TITAN"
+            session.leaderboard.entries[0]["body"], "VENUS"
         )
 
     def test_time_bonus_under_par(self) -> None:

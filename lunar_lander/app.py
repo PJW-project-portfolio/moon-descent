@@ -14,16 +14,14 @@ import pygame
 from .game_state import GameSession, GameState
 from .settings import GameSettings
 from .resources import resource_path
-from .stages import STAGES
+from .stages import STAGES, StageConfig
 
 
-BLACK = (4, 7, 9)
 PHOSPHOR = (180, 255, 202)
 WHITE = (230, 245, 236)
 AMBER = (255, 193, 92)
 RED = (255, 92, 92)
 DIM = (74, 110, 92)
-GROUND_FILL = (8, 18, 16)
 
 
 @dataclass
@@ -53,14 +51,20 @@ class LunarLanderApp:
         self.particles: list[Particle] = []
         self.effect_rng = random.Random(seed)
         self.previous_state = self.session.state
+        self.star_stage: StageConfig | None = None
+        self.stars: list[tuple[int, int, int]] = []
+        self._regenerate_stars(STAGES[0])
+
+    def _regenerate_stars(self, stage: StageConfig) -> None:
         self.stars = [
             (
                 self.effect_rng.randrange(self.settings.screen_width),
                 self.effect_rng.randrange(int(self.settings.screen_height * 0.65)),
                 self.effect_rng.choice((1, 1, 1, 2)),
             )
-            for _ in range(115)
+            for _ in range(stage.star_count)
         ]
+        self.star_stage = stage
 
     def run(self) -> None:
         asyncio.run(self.run_async())
@@ -203,13 +207,19 @@ class LunarLanderApp:
         return lander.x - self.settings.screen_width / 2.0
 
     def _draw(self) -> None:
-        self.screen.fill(BLACK)
-        camera_x = (
-            0.0
-            if self.session.state in (GameState.TITLE, GameState.LEADERBOARD)
-            else self.camera_x
+        menu_screen = self.session.state in (
+            GameState.TITLE,
+            GameState.LEADERBOARD,
         )
-        self._draw_stars(camera_x)
+        background_stage = STAGES[0] if menu_screen else self.session.current_stage
+        if self.star_stage != background_stage:
+            self._regenerate_stars(background_stage)
+
+        self.screen.fill(background_stage.sky)
+        camera_x = 0.0 if menu_screen else self.camera_x
+        self._draw_stars(background_stage.star_color, camera_x)
+        if not menu_screen and background_stage.star_count == 0:
+            self._draw_haze()
         if self.session.state == GameState.TITLE:
             self._draw_title()
         elif self.session.state == GameState.LEADERBOARD:
@@ -220,10 +230,20 @@ class LunarLanderApp:
             self._draw_overlay()
         pygame.display.flip()
 
-    def _draw_stars(self, camera_x: float = 0.0) -> None:
+    def _draw_stars(
+        self, color: tuple[int, int, int], camera_x: float = 0.0
+    ) -> None:
         for x, y, radius in self.stars:
             screen_x = (x - camera_x * 0.3) % self.settings.screen_width
-            pygame.draw.circle(self.screen, DIM, (screen_x, y), radius)
+            pygame.draw.circle(self.screen, color, (screen_x, y), radius)
+
+    def _draw_haze(self) -> None:
+        for y in (90, 180, 270):
+            pygame.draw.rect(
+                self.screen,
+                (30, 23, 9),
+                (0, y, self.settings.screen_width, 26),
+            )
 
     def _draw_title(self) -> None:
         self._center_text("MOON DESCENT", 150, self.font_large, PHOSPHOR)
@@ -301,6 +321,7 @@ class LunarLanderApp:
             return
 
         camera_x = self.camera_x
+        stage = self.session.current_stage
         world_width = float(terrain.width)
         center_copy = math.floor(camera_x / world_width)
         world_shifts = tuple(
@@ -315,8 +336,14 @@ class LunarLanderApp:
             surface_line = [
                 (x + shift - camera_x, y) for x, y in terrain.points
             ]
-            pygame.draw.polygon(self.screen, GROUND_FILL, polygon)
-            pygame.draw.lines(self.screen, PHOSPHOR, False, surface_line, 2)
+            pygame.draw.polygon(self.screen, stage.ground_fill, polygon)
+            pygame.draw.lines(
+                self.screen,
+                stage.terrain_color,
+                False,
+                surface_line,
+                2,
+            )
 
         for pad in terrain.pads:
             label = self.font_small.render(f"x{pad.multiplier}", True, AMBER)
