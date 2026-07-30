@@ -268,10 +268,11 @@ class LunarLanderApp:
             f"STAGE {self.session.stage:02d}",
             f"LIVES {self.session.lives}",
         )
+        ppm = self.settings.pixels_per_meter
         right_lines = (
             f"ALT  {self.session.altitude:06.1f}",
-            f"H-S  {lander.velocity_x:+06.1f}",
-            f"V-S  {lander.velocity_y:+06.1f}",
+            f"H-S  {lander.velocity_x / ppm:+05.1f} M/S",
+            f"V-S  {lander.velocity_y / ppm:+05.1f} M/S",
             f"FUEL {lander.fuel:06.1f}",
         )
         for index, text in enumerate(left_lines):
