@@ -10,6 +10,7 @@ from .settings import GameSettings
 class LandingResult(Enum):
     FLYING = auto()
     LANDED = auto()
+    EMERGENCY_LANDED = auto()
     CRASHED = auto()
 
 
@@ -119,16 +120,9 @@ class Lander:
         pad_start: float | None,
         pad_end: float | None,
         settings: GameSettings,
+        surface_span_px: float | None = None,
     ) -> LandingResult:
-        """Evaluate touchdown using pad clearance, speed and orientation."""
-        if pad_start is None or pad_end is None:
-            return LandingResult.CRASHED
-
-        gear_x_positions = [point[0] for point in self.landing_gear_points()]
-        fits_on_pad = (
-            min(gear_x_positions) >= pad_start
-            and max(gear_x_positions) <= pad_end
-        )
+        """Evaluate pad or emergency touchdown safety."""
         safe_speed = (
             abs(self.velocity_x) <= settings.safe_horizontal_speed
             and 0.0 <= self.velocity_y <= settings.safe_vertical_speed
@@ -137,6 +131,24 @@ class Lander:
             abs(normalized_angle(self.angle)) <= settings.safe_angle_degrees
         )
 
-        if fits_on_pad and safe_speed and safe_angle:
-            return LandingResult.LANDED
+        if pad_start is not None and pad_end is not None:
+            gear_x_positions = [
+                point[0] for point in self.landing_gear_points()
+            ]
+            fits_on_pad = (
+                min(gear_x_positions) >= pad_start
+                and max(gear_x_positions) <= pad_end
+            )
+            if fits_on_pad and safe_speed and safe_angle:
+                return LandingResult.LANDED
+        elif (
+            pad_start is None
+            and pad_end is None
+            and surface_span_px is not None
+            and surface_span_px <= settings.emergency_flatness_px
+            and safe_speed
+            and safe_angle
+        ):
+            return LandingResult.EMERGENCY_LANDED
+
         return LandingResult.CRASHED

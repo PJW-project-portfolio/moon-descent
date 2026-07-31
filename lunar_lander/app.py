@@ -12,6 +12,7 @@ import random
 import pygame
 
 from .game_state import GameSession, GameState
+from .models import LandingResult
 from .settings import GameSettings
 from .resources import resource_path
 from .stages import STAGES, StageConfig
@@ -507,10 +508,18 @@ class LunarLanderApp:
             self._panel_message("PAUSED", "PRESS P TO RESUME", PHOSPHOR)
         elif state == GameState.STAGE_CLEAR:
             next_stage = self.session.next_stage
+            award_line = (
+                f"EMERGENCY +{self.session.last_award} POINTS"
+                if (
+                    self.session.last_landing_result
+                    == LandingResult.EMERGENCY_LANDED
+                )
+                else f"+{self.session.last_award} POINTS"
+            )
             self._panel_lines(
                 f"{self.session.current_stage.name} CLEARED",
                 (
-                    f"+{self.session.last_award} POINTS",
+                    award_line,
                     f"TIME {self.session.clear_elapsed:.1f}s  /  "
                     f"FUEL BONUS +{self.session.last_fuel_bonus:.0f}",
                     f"{'ENTER':<7}NEXT: "

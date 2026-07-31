@@ -60,6 +60,7 @@ class GameSession:
     clear_elapsed: float = 0.0
     last_fuel_bonus: float = 0.0
     last_award: int = 0
+    last_landing_result: LandingResult = LandingResult.FLYING
     fresh_leaderboard_entry: LeaderboardEntry | None = None
     run_recorded: bool = False
     name_input: str = ""
@@ -139,6 +140,7 @@ class GameSession:
         )
         self.transition_elapsed = 0.0
         self.stage_elapsed = 0.0
+        self.last_landing_result = LandingResult.FLYING
         self.state = GameState.PLAYING
 
     def toggle_pause(self) -> None:
@@ -171,6 +173,21 @@ class GameSession:
             if self.transition_elapsed >= self.settings.round_transition_seconds:
                 self.advance_after_result()
 
+    def _surface_span_under_lander(self) -> float:
+        assert self.lander is not None
+        assert self.terrain is not None
+        sample_count = 5
+        half_width = self.settings.lander_half_width
+        surface_heights = [
+            self.terrain.height_at(
+                self.lander.x
+                - half_width
+                + index * (2.0 * half_width) / (sample_count - 1)
+            )
+            for index in range(sample_count)
+        ]
+        return max(surface_heights) - min(surface_heights)
+
     def _update_playing(
         self,
         dt: float,
@@ -202,11 +219,14 @@ class GameSession:
             if pad is not None
             else (None, None)
         )
+        surface_span_px = self._surface_span_under_lander()
         result = self.lander.evaluate_landing(
             pad_bounds[0],
             pad_bounds[1],
             self.settings,
+            surface_span_px=surface_span_px,
         )
+        self.last_landing_result = result
         if result == LandingResult.LANDED and pad is not None:
             lowest_gear_offset = max(
                 point_y - self.lander.y
@@ -216,7 +236,10 @@ class GameSession:
         self.lander.thrusting = False
         self.transition_elapsed = 0.0
 
-        if result == LandingResult.LANDED and pad is not None:
+        if result in (
+            LandingResult.LANDED,
+            LandingResult.EMERGENCY_LANDED,
+        ):
             softness = max(
                 0.0,
                 1.0
@@ -224,9 +247,12 @@ class GameSession:
                 / self.settings.safe_vertical_speed,
             )
             base_award = 100 + softness * 100
-            self.last_award = round(
-                base_award * pad.multiplier * pad.distance_bonus
-            )
+            if result == LandingResult.LANDED and pad is not None:
+                self.last_award = round(
+                    base_award * pad.multiplier * pad.distance_bonus
+                )
+            else:
+                self.last_award = round(base_award)
             self.score += self.last_award
             self.high_score = max(self.high_score, self.score)
             self.clear_elapsed = self.stage_elapsed

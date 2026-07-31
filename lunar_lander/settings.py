@@ -30,6 +30,7 @@ class GameSettings:
     safe_horizontal_speed: float = 35.0
     safe_vertical_speed: float = 45.0
     safe_angle_degrees: float = 12.0
+    emergency_flatness_px: float = 8.0  # 발 스팬(±20px) 안 지형 고저차 허용치 — 경사 약 11도
 
     lander_half_width: float = 20.0
     lander_bottom_offset: float = 18.0

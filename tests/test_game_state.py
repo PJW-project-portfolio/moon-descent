@@ -8,7 +8,7 @@ from lunar_lander.game_state import (
     GameState,
     calculate_time_bonus,
 )
-from lunar_lander.models import Lander
+from lunar_lander.models import Lander, LandingResult
 from lunar_lander.stages import STAGES
 from lunar_lander.terrain import Terrain
 
@@ -82,6 +82,76 @@ class GameSessionTests(unittest.TestCase):
             STAGES[1].entry_speed_ms * session.settings.pixels_per_meter,
         )
         self.assertEqual(session.lander.velocity_y, 0.0)
+
+    def test_emergency_landing_awards_base_score_and_advances_stage(
+        self,
+    ) -> None:
+        emergency_session = GameSession.create(seed=18)
+        emergency_session.new_game()
+        emergency_session.terrain = Terrain(
+            width=int(emergency_session.settings.world_width),
+            height=emergency_session.settings.screen_height,
+            points=[
+                (0.0, 600.0),
+                (emergency_session.settings.world_width, 600.0),
+            ],
+            pads=[],
+        )
+        assert emergency_session.lander is not None
+        emergency_session.lander.x = 100.0
+        emergency_session.lander.y = (
+            600.0 - emergency_session.settings.lander_bottom_offset - 0.1
+        )
+        emergency_session.lander.velocity_x = 0.0
+        emergency_session.lander.velocity_y = 10.0
+        emergency_session.lander.angle = 0.0
+        emergency_session.update(0.01)
+
+        self.assertEqual(emergency_session.state, GameState.STAGE_CLEAR)
+        self.assertEqual(
+            emergency_session.last_landing_result,
+            LandingResult.EMERGENCY_LANDED,
+        )
+        self.assertEqual(emergency_session.lives, 3)
+        softness = max(
+            0.0,
+            1.0
+            - abs(emergency_session.lander.velocity_y)
+            / emergency_session.settings.safe_vertical_speed,
+        )
+        base_award = 100 + softness * 100
+        self.assertEqual(emergency_session.last_award, round(base_award))
+
+        pad_session = GameSession.create(seed=18)
+        pad_session.new_game()
+        assert pad_session.terrain is not None
+        assert pad_session.lander is not None
+        pad = pad_session.terrain.pads[0]
+        pad_session.lander.x = pad.center_x
+        pad_session.lander.y = (
+            pad.y - pad_session.settings.lander_bottom_offset - 0.1
+        )
+        pad_session.lander.velocity_x = 0.0
+        pad_session.lander.velocity_y = 10.0
+        pad_session.lander.angle = 0.0
+        pad_session.update(0.01)
+
+        self.assertEqual(
+            pad_session.last_landing_result,
+            LandingResult.LANDED,
+        )
+        self.assertEqual(
+            pad_session.last_award,
+            round(base_award * pad.multiplier * pad.distance_bonus),
+        )
+        self.assertGreater(
+            pad_session.last_award,
+            emergency_session.last_award,
+        )
+
+        emergency_session.advance_after_result()
+        self.assertEqual(emergency_session.stage, 2)
+        self.assertEqual(emergency_session.state, GameState.PLAYING)
 
     def test_retry_keeps_stage_and_terrain_and_refills_fuel(self) -> None:
         session = GameSession.create(seed=4)

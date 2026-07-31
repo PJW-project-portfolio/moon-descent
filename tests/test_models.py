@@ -121,6 +121,53 @@ class LandingEvaluationTests(unittest.TestCase):
             LandingResult.CRASHED,
         )
 
+    def test_safe_touchdown_off_pad_on_flat_terrain_is_emergency_landing(
+        self,
+    ) -> None:
+        lander = Lander(
+            100.0,
+            500.0,
+            velocity_x=10.0,
+            velocity_y=25.0,
+            angle=5.0,
+        )
+        self.assertEqual(
+            lander.evaluate_landing(
+                None,
+                None,
+                self.settings,
+                surface_span_px=8.0,
+            ),
+            LandingResult.EMERGENCY_LANDED,
+        )
+
+    def test_safe_touchdown_off_pad_on_steep_terrain_crashes(self) -> None:
+        lander = Lander(100.0, 500.0, velocity_y=20.0)
+        self.assertEqual(
+            lander.evaluate_landing(
+                None,
+                None,
+                self.settings,
+                surface_span_px=8.1,
+            ),
+            LandingResult.CRASHED,
+        )
+
+    def test_fast_or_tilted_touchdown_off_pad_crashes(self) -> None:
+        fast = Lander(100.0, 500.0, velocity_y=60.0)
+        tilted = Lander(100.0, 500.0, velocity_y=20.0, angle=20.0)
+        for lander in (fast, tilted):
+            with self.subTest(lander=lander):
+                self.assertEqual(
+                    lander.evaluate_landing(
+                        None,
+                        None,
+                        self.settings,
+                        surface_span_px=0.0,
+                    ),
+                    LandingResult.CRASHED,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
