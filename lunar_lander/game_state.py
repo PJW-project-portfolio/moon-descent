@@ -119,6 +119,8 @@ class GameSession:
             int(self.settings.world_width),
             self.settings.screen_height,
             self.stage,
+            self.settings.screen_width / 2.0,
+            self.settings.pad_exclusion_radius,
             self.rng,
         )
         self._spawn_lander(fuel)
@@ -128,7 +130,10 @@ class GameSession:
         self.lander = Lander(
             x=self.settings.screen_width / 2.0,
             y=105.0,
-            velocity_x=0.0,
+            velocity_x=(
+                self.current_stage.entry_speed_ms
+                * self.settings.pixels_per_meter
+            ),
             velocity_y=0.0,
             fuel=fuel,
         )
@@ -192,9 +197,14 @@ class GameSession:
             return
 
         pad = self.terrain.pad_at(self.lander.x)
+        pad_bounds = (
+            pad.bounds_near(self.lander.x, self.terrain.width)
+            if pad is not None
+            else (None, None)
+        )
         result = self.lander.evaluate_landing(
-            pad.start_x if pad else None,
-            pad.end_x if pad else None,
+            pad_bounds[0],
+            pad_bounds[1],
             self.settings,
         )
         if result == LandingResult.LANDED and pad is not None:
@@ -213,7 +223,10 @@ class GameSession:
                 - abs(self.lander.velocity_y)
                 / self.settings.safe_vertical_speed,
             )
-            self.last_award = int((100 + softness * 100) * pad.multiplier)
+            base_award = 100 + softness * 100
+            self.last_award = round(
+                base_award * pad.multiplier * pad.distance_bonus
+            )
             self.score += self.last_award
             self.high_score = max(self.high_score, self.score)
             self.clear_elapsed = self.stage_elapsed

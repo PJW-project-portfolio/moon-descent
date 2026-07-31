@@ -7,6 +7,7 @@ from dataclasses import dataclass
 class StageConfig:
     name: str                    # HUD 표기용 (영문 대문자)
     gravity_ms2: float           # 실제 표면 중력 (m/s^2)
+    entry_speed_ms: float        # 시작 수평 진입 속도 (m/s)
     fuel_burn_per_second: float  # 스테이지별 연료 소모율 (밸런스 튜닝값)
     par_time_seconds: float      # 시간 보너스 기준 기록
     sky: tuple[int, int, int]
@@ -20,6 +21,7 @@ STAGES = (
     StageConfig(
         "MOON",
         1.62,
+        5.0,
         10.0,
         45.0,
         (4, 7, 9),
@@ -31,6 +33,7 @@ STAGES = (
     StageConfig(
         "MARS",
         3.71,
+        7.0,
         9.0,
         50.0,
         (14, 6, 4),
@@ -42,6 +45,7 @@ STAGES = (
     StageConfig(
         "VENUS",
         8.87,
+        8.0,
         7.0,
         60.0,
         (20, 15, 5),

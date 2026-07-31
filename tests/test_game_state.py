@@ -59,6 +59,17 @@ class GameSessionTests(unittest.TestCase):
         ]
         self.assertTrue(all(abs(y - pad.y) < 1e-7 for y in gear_heights))
         self.assertGreater(session.score, 0)
+        softness = max(
+            0.0,
+            1.0
+            - abs(session.lander.velocity_y)
+            / session.settings.safe_vertical_speed,
+        )
+        base_award = 100 + softness * 100
+        self.assertEqual(
+            session.last_award,
+            round(base_award * pad.multiplier * pad.distance_bonus),
+        )
         expected_fuel = session.settings.fuel_capacity + session.last_fuel_bonus
         session.advance_after_result()
         self.assertEqual(session.state, GameState.PLAYING)
@@ -66,7 +77,10 @@ class GameSessionTests(unittest.TestCase):
         assert session.lander is not None
         self.assertEqual(session.stage_start_fuel, expected_fuel)
         self.assertEqual(session.lander.fuel, expected_fuel)
-        self.assertEqual(session.lander.velocity_x, 0.0)
+        self.assertEqual(
+            session.lander.velocity_x,
+            STAGES[1].entry_speed_ms * session.settings.pixels_per_meter,
+        )
         self.assertEqual(session.lander.velocity_y, 0.0)
 
     def test_retry_keeps_stage_and_terrain_and_refills_fuel(self) -> None:
@@ -95,16 +109,31 @@ class GameSessionTests(unittest.TestCase):
         self.assertIs(session.terrain, original_terrain)
         assert session.lander is not None
         self.assertEqual(session.lander.fuel, session.settings.fuel_capacity)
-        self.assertEqual(session.lander.velocity_x, 0.0)
+        self.assertEqual(
+            session.lander.velocity_x,
+            STAGES[0].entry_speed_ms * session.settings.pixels_per_meter,
+        )
         self.assertEqual(session.lander.velocity_y, 0.0)
 
-    def test_every_round_starts_stationary(self) -> None:
-        for seed in range(20):
-            session = GameSession.create(seed=seed)
-            session.new_game()
-            assert session.lander is not None
-            self.assertEqual(session.lander.velocity_x, 0.0)
-            self.assertEqual(session.lander.velocity_y, 0.0)
+    def test_spawn_velocity_matches_moon_and_venus_entry_speed(self) -> None:
+        session = GameSession.create(seed=6)
+        session.new_game()
+        assert session.lander is not None
+        pixels_per_meter = session.settings.pixels_per_meter
+        self.assertEqual(
+            session.lander.velocity_x,
+            STAGES[0].entry_speed_ms * pixels_per_meter,
+        )
+        self.assertEqual(session.lander.velocity_y, 0.0)
+
+        session.stage = len(STAGES)
+        session._spawn_lander(session.settings.fuel_capacity)
+        assert session.lander is not None
+        self.assertEqual(
+            session.lander.velocity_x,
+            STAGES[-1].entry_speed_ms * pixels_per_meter,
+        )
+        self.assertEqual(session.lander.velocity_y, 0.0)
 
     def test_later_stage_retry_restores_that_stages_starting_fuel(self) -> None:
         session = GameSession.create(seed=12)
@@ -129,7 +158,10 @@ class GameSessionTests(unittest.TestCase):
         session.state = GameState.CRASHED
         session.advance_after_result()
         self.assertEqual(session.lander.fuel, expected_start_fuel)
-        self.assertEqual(session.lander.velocity_x, 0.0)
+        self.assertEqual(
+            session.lander.velocity_x,
+            STAGES[1].entry_speed_ms * session.settings.pixels_per_meter,
+        )
         self.assertEqual(session.lander.velocity_y, 0.0)
 
     def test_third_crash_waits_for_callsign_before_recording(self) -> None:

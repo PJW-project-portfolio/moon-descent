@@ -16,6 +16,7 @@ class GameSettings:
     # 표시용 스케일: 물리 계산은 픽셀 단위 그대로, HUD 표기만 미터로 환산한다.
     pixels_per_meter: float = 10.0
     map_screens: int = 5
+    pad_exclusion_radius: float = 1280.0  # 스폰 좌우 1화면 안에는 패드 금지
 
     # 금성(8.87 m/s²)에서도 TWR≈1.24로 착륙 가능해야 하므로.
     thrust_acceleration: float = 110.0

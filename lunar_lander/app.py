@@ -361,6 +361,16 @@ class LunarLanderApp:
 
         for pad in terrain.pads:
             label = self.font_small.render(f"x{pad.multiplier}", True, AMBER)
+            bonus_percent = int((pad.distance_bonus - 1.0) * 100)
+            bonus_label = (
+                self.font_small.render(
+                    f"+{bonus_percent}%",
+                    True,
+                    DIM,
+                )
+                if bonus_percent >= 1
+                else None
+            )
             for shift in world_shifts:
                 start_x = pad.start_x + shift - camera_x
                 end_x = pad.end_x + shift - camera_x
@@ -383,6 +393,17 @@ class LunarLanderApp:
                         pad.y + 10,
                     ),
                 )
+                if bonus_label is not None:
+                    self.screen.blit(
+                        bonus_label,
+                        (
+                            pad.center_x
+                            + shift
+                            - camera_x
+                            - bonus_label.get_width() / 2,
+                            pad.y + 12 + label.get_height(),
+                        ),
+                    )
 
         if self.session.state not in (GameState.CRASHED, GameState.GAME_OVER):
             self._draw_lander(

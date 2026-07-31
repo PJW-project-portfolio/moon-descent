@@ -16,6 +16,10 @@ class StageDefinitionTests(unittest.TestCase):
         )
 
         self.assertEqual(
+            [stage.entry_speed_ms for stage in STAGES],
+            [5.0, 7.0, 8.0],
+        )
+        self.assertEqual(
             [stage.par_time_seconds for stage in STAGES],
             [45.0, 50.0, 60.0],
         )
