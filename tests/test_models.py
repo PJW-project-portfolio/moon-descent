@@ -18,7 +18,9 @@ class LanderPhysicsTests(unittest.TestCase):
         lander = Lander(100.0, 100.0, velocity_y=20.0)
         lander.update(0.05, 0.0, True, 22.0, self.settings)
         self.assertLess(lander.velocity_y, 20.0)
-        self.assertAlmostEqual(lander.fuel, 99.25)
+        self.assertAlmostEqual(
+            lander.fuel, 100.0 - self.settings.fuel_burn_per_second * 0.05
+        )
         self.assertTrue(lander.thrusting)
 
     def test_empty_tank_disables_thrust(self) -> None:
@@ -28,8 +30,16 @@ class LanderPhysicsTests(unittest.TestCase):
         self.assertGreater(lander.velocity_y, 0.0)
 
     def test_last_drop_of_fuel_only_provides_proportional_impulse(self) -> None:
-        lander = Lander(100.0, 100.0, fuel=0.15)
-        lander.update(0.05, 0.0, True, 22.0, self.settings)
+        # 연료가 프레임 도중 소진되면 추력은 남은 연료 비율만큼만 적용된다.
+        # 그 부분 임펄스가 중력을 정확히 상쇄하도록 초기 연료를 역산한다:
+        # thrust * (fuel / burn) == gravity * dt
+        gravity, dt = 22.0, 0.05
+        fuel = (
+            gravity * dt * self.settings.fuel_burn_per_second
+            / self.settings.thrust_acceleration
+        )
+        lander = Lander(100.0, 100.0, fuel=fuel)
+        lander.update(dt, 0.0, True, gravity, self.settings)
         self.assertAlmostEqual(lander.fuel, 0.0)
         self.assertAlmostEqual(lander.velocity_y, 0.0, places=7)
 
