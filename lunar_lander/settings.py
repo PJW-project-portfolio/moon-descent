@@ -22,7 +22,7 @@ class GameSettings:
     rotation_speed: float = 90.0
     fuel_capacity: float = 100.0
     starting_lives: int = 3
-    fuel_burn_per_second: float = 15.0
+    fuel_burn_per_second: float = 10.0
     time_bonus_fuel_per_second: float = TIME_BONUS_FUEL_PER_SECOND
     max_time_bonus_fuel: float = MAX_TIME_BONUS_FUEL
 
