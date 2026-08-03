@@ -16,6 +16,7 @@ from .models import LandingResult
 from .settings import GameSettings
 from .resources import resource_path
 from .stages import STAGES, StageConfig
+from .terrain import signed_wrapped_delta
 
 
 PHOSPHOR = (180, 255, 202)
@@ -278,15 +279,25 @@ class LunarLanderApp:
             self.font_small,
             WHITE,
         )
+        self._left_aligned_block(
+            (
+                "SCORING   PAD = BASE x MULT(x2~x5) x DIST BONUS",
+                "          FLAT GROUND = EMERGENCY, BASE ONLY",
+            ),
+            510,
+            26,
+            self.font_small,
+            [WHITE, DIM],
+        )
         self._center_text(
             "PRESS ENTER OR SPACE TO LAUNCH",
-            550,
+            580,
             self.font_medium,
             PHOSPHOR,
         )
         self._center_text(
             "LAND UPRIGHT. LAND SLOW. CONSERVE FUEL.",
-            610,
+            640,
             self.font_small,
             DIM,
         )
@@ -446,6 +457,8 @@ class LunarLanderApp:
         if lander is None:
             return
 
+        self._draw_pad_radar()
+
         left_lines = (
             f"SCORE {self.session.score:06d}",
             f"HIGH  {self.session.high_score:06d}",
@@ -501,6 +514,99 @@ class LunarLanderApp:
                 AMBER,
                 (bar_x + bar_width + 4, bar_y, extension_width, bar_height),
             )
+
+        if self.session.state in (GameState.PLAYING, GameState.PAUSED):
+            self._draw_pad_edge_indicators()
+
+    def _draw_pad_radar(self) -> None:
+        terrain = self.session.terrain
+        lander = self.session.lander
+        if terrain is None or lander is None:
+            return
+
+        bar_width, bar_height, bar_y = 480, 10, 24
+        bar_left = (self.settings.screen_width - bar_width) / 2.0
+        pygame.draw.rect(
+            self.screen,
+            (0, 8, 6),
+            (bar_left, bar_y, bar_width, bar_height),
+        )
+        pygame.draw.rect(
+            self.screen,
+            DIM,
+            (bar_left, bar_y, bar_width, bar_height),
+            1,
+        )
+
+        world_width = float(terrain.width)
+        for pad in terrain.pads:
+            tick_x = bar_left + pad.center_x / world_width * bar_width
+            pygame.draw.rect(
+                self.screen,
+                AMBER,
+                (round(tick_x) - 1, bar_y + 1, 3, bar_height - 2),
+            )
+            digit = self.font_small.render(str(pad.multiplier), True, AMBER)
+            self.screen.blit(
+                digit,
+                (tick_x - digit.get_width() / 2.0, bar_y + bar_height + 2),
+            )
+
+        lander_tick_x = (
+            bar_left + (lander.x % world_width) / world_width * bar_width
+        )
+        pygame.draw.rect(
+            self.screen,
+            WHITE,
+            (round(lander_tick_x) - 2, bar_y + 1, 5, bar_height - 2),
+        )
+
+    def _draw_pad_edge_indicators(self) -> None:
+        terrain = self.session.terrain
+        lander = self.session.lander
+        if terrain is None or lander is None:
+            return
+
+        screen_center_x = self.settings.screen_width / 2.0
+        world_width = float(terrain.width)
+        pads_by_side: dict[str, list[tuple[float, int]]] = {
+            "left": [],
+            "right": [],
+        }
+        for pad in terrain.pads:
+            delta = signed_wrapped_delta(
+                lander.x,
+                pad.center_x,
+                world_width,
+            )
+            label_width = self.font_small.size(f"x{pad.multiplier}")[0]
+            label_center_x = screen_center_x + delta
+            label_left = label_center_x - label_width / 2.0
+            label_right = label_center_x + label_width / 2.0
+            if label_right > 0.0 and label_left < self.settings.screen_width:
+                continue
+            side = "right" if delta > 0.0 else "left"
+            pads_by_side[side].append((abs(delta), pad.multiplier))
+
+        row_y, row_spacing = 170, 26
+        pixels_per_meter = self.settings.pixels_per_meter
+        for side, entries in pads_by_side.items():
+            for row, (distance, multiplier) in enumerate(
+                sorted(entries, key=lambda entry: entry[0])
+            ):
+                distance_m = round(distance / pixels_per_meter)
+                text = (
+                    f"< x{multiplier} {distance_m}M"
+                    if side == "left"
+                    else f"x{multiplier} {distance_m}M >"
+                )
+                surface = self.font_small.render(text, True, AMBER)
+                x = (
+                    28
+                    if side == "left"
+                    else self.settings.screen_width - surface.get_width() - 28
+                )
+                self.screen.blit(surface, (x, row_y + row * row_spacing))
 
     def _draw_overlay(self) -> None:
         state = self.session.state
@@ -572,6 +678,7 @@ class LunarLanderApp:
                 f"GRAVITY {stage.gravity_ms2:.2f} M/S2",
                 PHOSPHOR,
                 self.font_large,
+                "LAND ON A PAD  x2~x5 + DISTANCE BONUS",
             )
 
     def _panel_lines(
@@ -616,9 +723,11 @@ class LunarLanderApp:
         subtitle: str,
         color: tuple[int, int, int],
         title_font: pygame.font.Font | None = None,
+        third_line: str | None = None,
     ) -> None:
         title_font = title_font or self.font_medium
-        panel = pygame.Surface((600, 150), pygame.SRCALPHA)
+        panel_height = 190 if third_line is not None else 150
+        panel = pygame.Surface((600, panel_height), pygame.SRCALPHA)
         panel.fill((0, 8, 6, 220))
         pygame.draw.rect(panel, color, panel.get_rect(), 2)
         self.screen.blit(
@@ -642,6 +751,13 @@ class LunarLanderApp:
             self.font_small,
             WHITE,
         )
+        if third_line is not None:
+            self._center_text(
+                third_line,
+                self.settings.screen_height / 2 + 62,
+                self.font_small,
+                AMBER,
+            )
 
     def _text(
         self,

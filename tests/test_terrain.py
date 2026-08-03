@@ -2,7 +2,7 @@ import random
 import unittest
 
 from lunar_lander.settings import GameSettings
-from lunar_lander.terrain import Terrain
+from lunar_lander.terrain import Terrain, signed_wrapped_delta
 
 
 def wrapped_distance(a: float, b: float, width: float) -> float:
@@ -24,6 +24,28 @@ def generate_terrain(
         exclusion_radius=settings.pad_exclusion_radius,
         rng=random.Random(seed),
     )
+
+
+class SignedWrappedDeltaTests(unittest.TestCase):
+    def test_same_point_has_zero_delta(self) -> None:
+        self.assertEqual(signed_wrapped_delta(123.0, 123.0, 6400.0), 0.0)
+
+    def test_simple_left_and_right_deltas(self) -> None:
+        self.assertEqual(signed_wrapped_delta(100.0, 350.0, 6400.0), 250.0)
+        self.assertEqual(signed_wrapped_delta(350.0, 100.0, 6400.0), -250.0)
+
+    def test_seam_uses_shortest_direction(self) -> None:
+        self.assertEqual(signed_wrapped_delta(6300.0, 100.0, 6400.0), 200.0)
+        self.assertEqual(signed_wrapped_delta(100.0, 6300.0, 6400.0), -200.0)
+
+    def test_result_stays_in_half_open_width_range(self) -> None:
+        width = 6400.0
+        for from_x in (-12800.0, -1.0, 0.0, 3199.0, 6400.0, 13000.0):
+            for to_x in (-9600.0, 0.0, 100.0, 3200.0, 6399.0, 19200.0):
+                with self.subTest(from_x=from_x, to_x=to_x):
+                    delta = signed_wrapped_delta(from_x, to_x, width)
+                    self.assertGreaterEqual(delta, -width / 2.0)
+                    self.assertLess(delta, width / 2.0)
 
 
 class TerrainTests(unittest.TestCase):

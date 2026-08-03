@@ -39,10 +39,14 @@ class LandingPad:
         return self.start_x + shift, self.end_x + shift
 
 
+def signed_wrapped_delta(from_x: float, to_x: float, width: float) -> float:
+    """Return the shortest signed offset to ``to_x`` on a wrapped strip."""
+    return (to_x - from_x + width / 2.0) % width - width / 2.0
+
+
 def wrapped_distance(a: float, b: float, width: float) -> float:
     """Return the shortest distance between two points on a wrapped strip."""
-    delta = abs((a % width) - (b % width))
-    return min(delta, width - delta)
+    return abs(signed_wrapped_delta(a, b, width))
 
 
 @dataclass
