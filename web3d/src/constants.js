@@ -37,3 +37,6 @@ export const SAFE_ANG_VEL = 0.35; // rad/s 최대 회전 속도
 export const SPAWN_OFFSET = { x: -85, y: 90, z: 70 }; // 패드 기준 스폰 위치
 export const SPAWN_VEL = { x: 5, y: -2, z: -3 };
 export const SPAWN_TILT_MAX_DEG = 6;
+
+export const STARTING_LIVES = 3; // 게임 전체 목숨 (2D와 동일)
+export const EMERGENCY_FLATNESS = 0.8; // m — 비상 착륙 허용 지형 고저차 (2D와 동일 기준)

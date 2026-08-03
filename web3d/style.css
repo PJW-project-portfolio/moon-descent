@@ -206,6 +206,15 @@ body {
   color: #ff6b5c;
 }
 
+#banner.emergency h1 {
+  color: #ffd35c;
+}
+
+.value.lives {
+  color: #ff9e8a;
+  letter-spacing: 2px;
+}
+
 #banner p {
   font-size: 14px;
   line-height: 1.9;

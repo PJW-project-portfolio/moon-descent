@@ -42,14 +42,21 @@ input.on("start", () => {
 });
 
 input.on("restart", () => {
-  const newSeed = (Math.random() * 0xffffffff) >>> 0;
-  game.reset(newSeed);
-  // 지형이 바뀌므로 장면과 카메라를 다시 구성
-  view = createScene(game.field);
-  cameras = createCameras(game.field);
-  view.lander.group.add(cameras.downCam);
-  view.lander.group.add(cameras.forwardCam);
-  hud.setCameraMode(cameras.mainMode);
+  if (game.state === GameState.CRASHED) {
+    // 목숨이 남아 있으면 같은 지형에서 재도전 (지형/장면 재사용)
+    game.retry();
+    view.setLanderVisible(true);
+    cameras.resetChase();
+  } else {
+    // 새 게임: 새 지형이므로 장면과 카메라를 다시 구성
+    const newSeed = (Math.random() * 0xffffffff) >>> 0;
+    game.reset(newSeed);
+    view = createScene(game.field);
+    cameras = createCameras(game.field);
+    view.lander.group.add(cameras.downCam);
+    view.lander.group.add(cameras.forwardCam);
+    hud.setCameraMode(cameras.mainMode);
+  }
   hud.showBanner(GameState.READY, game);
 });
 
@@ -70,7 +77,10 @@ function frame(now) {
   const snapshot = input.snapshot();
   if (game.state === GameState.FLYING) {
     game.update(dt, snapshot);
-    if (game.state === GameState.CRASHED) {
+    if (
+      game.state === GameState.CRASHED ||
+      game.state === GameState.GAME_OVER
+    ) {
       view.setLanderVisible(false);
       document.body.classList.add("crash-flash");
       setTimeout(() => document.body.classList.remove("crash-flash"), 600);
@@ -79,7 +89,7 @@ function frame(now) {
 
   if (game.state !== bannerShownFor) {
     bannerShownFor = game.state;
-    if (game.state === GameState.LANDED || game.state === GameState.CRASHED) {
+    if (game.state !== GameState.READY && game.state !== GameState.FLYING) {
       hud.showBanner(game.state, game);
     }
   }
