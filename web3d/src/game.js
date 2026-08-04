@@ -1,6 +1,9 @@
 // 게임 상태 머신 + 스폰 + 접촉/착륙 판정. three/DOM 비의존.
+// 2D(game_state.py)와 같은 규칙: 서브스텝 단위 접지 판정, 하강 중 접지만 인정,
+// 목숨 3개 + 게임 오버, 추락 시 같은 지형 재도전, 평탄 지형 비상 착륙.
 
 import {
+  SUBSTEP,
   PAD_CENTER,
   PAD_RADIUS,
   BELLY_OFFSET,
@@ -12,6 +15,8 @@ import {
   SPAWN_OFFSET,
   SPAWN_VEL,
   SPAWN_TILT_MAX_DEG,
+  STARTING_LIVES,
+  EMERGENCY_FLATNESS,
 } from "./constants.js";
 import {
   createState,
@@ -27,7 +32,9 @@ export const GameState = {
   READY: "READY",
   FLYING: "FLYING",
   LANDED: "LANDED",
+  EMERGENCY_LANDED: "EMERGENCY_LANDED",
   CRASHED: "CRASHED",
+  GAME_OVER: "GAME_OVER",
 };
 
 export function createGame(seed) {
@@ -38,30 +45,61 @@ export function createGame(seed) {
     lander: null,
     crashReason: null,
     score: 0,
+    finalScore: 0,
+    lives: STARTING_LIVES,
     reset,
+    retry,
     start,
     update,
     altitudeAGL,
     padDistance,
   };
 
+  // 완전 새 게임: 새 지형, 목숨/점수 초기화
   function reset(newSeed) {
     game.seed = newSeed;
     game.field = createHeightfield(newSeed);
-    game.lander = spawnLander(newSeed, game.field);
+    game.lives = STARTING_LIVES;
+    game.score = 0;
+    game.finalScore = 0;
+    respawn();
+  }
+
+  // 같은 지형 재도전: 목숨은 그대로, 착륙선만 재배치 (2D의 재시도 규칙)
+  function retry() {
+    if (game.state !== GameState.CRASHED) return;
+    respawn();
+  }
+
+  function respawn() {
+    game.lander = spawnLander(game.seed, game.field);
     game.state = GameState.READY;
     game.crashReason = null;
-    game.score = 0;
   }
 
   function start() {
     if (game.state === GameState.READY) game.state = GameState.FLYING;
   }
 
+  // 2D와 동일하게 10ms 서브스텝마다 접지를 검사해, 접촉 순간의
+  // 속도/자세로 판정하고 지형 관통(터널링)을 막는다.
   function update(dt, inputs) {
     if (game.state !== GameState.FLYING) return;
-    step(game.lander, inputs, dt);
-    checkContact();
+    let remaining = Math.max(0, dt);
+    while (remaining > 1e-9 && game.state === GameState.FLYING) {
+      const h = Math.min(remaining, SUBSTEP);
+      remaining -= h;
+      step(game.lander, inputs, h);
+      checkContact();
+    }
+  }
+
+  // 발 4곳 + 동체 중심 아래 지형의 고저차 — 비상 착륙용 평탄도 (2D의 surface span)
+  function surfaceSpanUnder(feet) {
+    const s = game.lander;
+    const heights = feet.map((f) => game.field.sample(f.x, f.z));
+    heights.push(game.field.sample(s.pos.x, s.pos.z));
+    return Math.max(...heights) - Math.min(...heights);
   }
 
   function checkContact() {
@@ -72,6 +110,7 @@ export function createGame(seed) {
       s.pos.y - BELLY_OFFSET <= game.field.sample(s.pos.x, s.pos.z);
     if (!feetContact && !bellyContact) return;
 
+    const descending = s.vel.y <= 0;
     const vDown = -s.vel.y;
     const hSpeed = Math.hypot(s.vel.x, s.vel.z);
     const tilt = tiltDeg(s.quat);
@@ -79,28 +118,43 @@ export function createGame(seed) {
     const allOnPad = feet.every(
       (f) => Math.hypot(f.x - PAD_CENTER.x, f.z - PAD_CENTER.z) <= PAD_RADIUS,
     );
+    const flatEnough = surfaceSpanUnder(feet) <= EMERGENCY_FLATNESS;
 
     let reason = null;
-    if (!allOnPad) reason = "착륙 패드를 벗어났습니다";
+    if (!descending) reason = "상승 중에 지형과 충돌했습니다";
     else if (vDown > SAFE_VSPEED) reason = "하강 속도가 너무 빠릅니다";
     else if (hSpeed > SAFE_HSPEED) reason = "수평 속도가 너무 빠릅니다";
     else if (tilt > SAFE_TILT_DEG) reason = "기체가 너무 기울었습니다";
     else if (spin > SAFE_ANG_VEL) reason = "회전이 멈추지 않았습니다";
+    else if (!allOnPad && !flatEnough)
+      reason = "패드 밖 험한 지형에 부딪혔습니다";
 
     if (reason) {
-      game.state = GameState.CRASHED;
       game.crashReason = reason;
+      game.lives = Math.max(0, game.lives - 1);
+      if (game.lives === 0) {
+        game.finalScore = game.score;
+        game.state = GameState.GAME_OVER;
+      } else {
+        game.state = GameState.CRASHED;
+      }
       return;
     }
 
-    game.state = GameState.LANDED;
-    s.pos.y = game.field.padHeight + REST_HEIGHT;
+    // 착륙: 패드 안이면 정식 착륙(연료 보너스 포함), 패드 밖 평탄 지형이면
+    // 비상 착륙(기본 점수만 — 2D와 동일한 규칙)
+    game.state = allOnPad ? GameState.LANDED : GameState.EMERGENCY_LANDED;
+    s.pos.y = game.field.sample(s.pos.x, s.pos.z) + REST_HEIGHT;
     s.vel = { x: 0, y: 0, z: 0 };
     s.angVel = { x: 0, y: 0, z: 0 };
     s.mainOn = false;
-    // 점수 = 남은 연료 + 부드러운 착륙 보너스
     const softness = 1 - Math.min(vDown / SAFE_VSPEED, 1);
-    game.score = Math.round(s.fuel + softness * 100);
+    const base = 100 + softness * 100;
+    game.score =
+      game.state === GameState.LANDED
+        ? Math.round(base + s.fuel)
+        : Math.round(base);
+    game.finalScore = game.score;
   }
 
   function altitudeAGL() {
@@ -128,7 +182,7 @@ function spawnLander(seed, field) {
     z: PAD_CENTER.z + SPAWN_OFFSET.z,
   };
   s.vel = { ...SPAWN_VEL };
-  // 무작위 수평축 기준 살짝 기울어진 채 시작
+  // 무작위 수평축 기준 살짝 기울어진 채 시작 (같은 시드면 같은 스폰)
   const theta = rand() * Math.PI * 2;
   const tilt = ((rand() * SPAWN_TILT_MAX_DEG) * Math.PI) / 180;
   s.quat = quatFromAxisAngle(
