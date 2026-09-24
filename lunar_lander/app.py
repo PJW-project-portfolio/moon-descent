@@ -13,6 +13,7 @@ import pygame
 
 from .game_state import GameSession, GameState
 from .models import LandingResult
+from .pilot_id import MAX_INITIALS, MIN_INITIALS, PHONE_DIGITS
 from .settings import GameSettings
 from .resources import resource_path
 from .stages import STAGES, StageConfig
@@ -44,6 +45,9 @@ class LunarLanderApp:
         self.screen = pygame.display.set_mode(
             (self.settings.screen_width, self.settings.screen_height)
         )
+        # 파일럿 ID는 키 코드로 읽는다. 텍스트 입력(IME)을 켜 두면 한/영이 한글
+        # 상태일 때 글자 키의 KEYDOWN이 IME에 흡수되므로 꺼 둔다.
+        pygame.key.stop_text_input()
         self.clock = pygame.time.Clock()
         self.font_small = pygame.font.Font(resource_path("assets/fonts/DejaVuSansMono.ttf"), 18)
         self.font_medium = pygame.font.Font(resource_path("assets/fonts/DejaVuSansMono-Bold.ttf"), 28)
@@ -96,12 +100,12 @@ class LunarLanderApp:
                     else:
                         self.running = False
                 elif self.session.state == GameState.NAME_ENTRY:
-                    if event.key == pygame.K_RETURN:
+                    if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
                         self.session.confirm_name_entry()
                     elif event.key == pygame.K_BACKSPACE:
                         self.session.edit_name("\b")
                     else:
-                        self.session.edit_name(getattr(event, "unicode", ""))
+                        self.session.edit_name(self._pilot_id_char(event))
                 elif event.key == pygame.K_r:
                     self.particles.clear()
                     self.session.restart()
@@ -150,6 +154,30 @@ class LunarLanderApp:
                     pygame.K_SPACE,
                 ):
                     self.session.advance_after_result()
+
+    @staticmethod
+    def _pilot_id_char(event: pygame.event.Event) -> str:
+        """Translate a key press into a letter or digit for the pilot ID."""
+        if (
+            pygame.K_a <= event.key <= pygame.K_z
+            or pygame.K_0 <= event.key <= pygame.K_9
+        ):
+            return chr(event.key)
+        keypad = (
+            pygame.K_KP0,
+            pygame.K_KP1,
+            pygame.K_KP2,
+            pygame.K_KP3,
+            pygame.K_KP4,
+            pygame.K_KP5,
+            pygame.K_KP6,
+            pygame.K_KP7,
+            pygame.K_KP8,
+            pygame.K_KP9,
+        )
+        if event.key in keypad:
+            return str(keypad.index(event.key))
+        return ""
 
     def _read_controls(self) -> tuple[float, bool]:
         if self.session.state != GameState.PLAYING:
@@ -304,15 +332,17 @@ class LunarLanderApp:
 
     def _draw_leaderboard(self) -> None:
         self._center_text("LEADERBOARD", 75, self.font_large, PHOSPHOR)
-        lines = [" #    SCORE  BODY   NAME       DATE"]
+        # INITIALS 칸은 이전 버전의 닉네임(최대 10자)도 들어가도록 11칸을 둔다.
+        lines = [" #    SCORE  BODY   INITIALS   TEL   DATE"]
         colors = [AMBER]
         for rank, entry in enumerate(
             self.session.leaderboard.entries,
             start=1,
         ):
             lines.append(
-                f"{rank:>2}  {entry['score']:>7}  "
-                f"{entry['body']:<7}{entry['name']:<11}{entry['date']}"
+                f"{rank:>2}  {entry['score']:>7}  {entry['body']:<7}"
+                f"{entry['initials']:<11}{entry['phone_last4']:<6}"
+                f"{entry['date']}"
             )
             colors.append(
                 AMBER
@@ -326,6 +356,13 @@ class LunarLanderApp:
             self.font_small,
             colors,
         )
+        if self.session.leaderboard.storage_error:
+            self._center_text(
+                "SAVE FAILED - CLOSE RECORDS.CSV IF IT IS OPEN",
+                600,
+                self.font_small,
+                RED,
+            )
         if not self.session.leaderboard.entries:
             self._center_text(
                 "NO RECORDED MISSIONS",
@@ -661,16 +698,7 @@ class LunarLanderApp:
                 hint_start=1,
             )
         elif state == GameState.NAME_ENTRY:
-            self._panel_lines(
-                "ENTER CALLSIGN",
-                (
-                    f"{self.session.name_input}_",
-                    f"{'ENTER':<7}SAVE",
-                    f"{'ESC':<7}SKIP",
-                ),
-                PHOSPHOR,
-                hint_start=1,
-            )
+            self._draw_pilot_id_entry()
         elif self.session.stage_intro_active:
             stage = self.session.current_stage
             self._panel_message(
@@ -680,6 +708,48 @@ class LunarLanderApp:
                 self.font_large,
                 "LAND ON A PAD  x2~x5 + DISTANCE BONUS",
             )
+
+    def _draw_pilot_id_entry(self) -> None:
+        session = self.session
+        panel_width, panel_height = 720, 330
+        panel_x = self.settings.screen_width / 2 - panel_width / 2
+        panel_y = self.settings.screen_height / 2 - panel_height / 2
+        panel = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)
+        panel.fill((0, 8, 6, 220))
+        pygame.draw.rect(panel, PHOSPHOR, panel.get_rect(), 2)
+        self.screen.blit(panel, (panel_x, panel_y))
+        self._center_text("PILOT ID", panel_y + 32, self.font_medium, PHOSPHOR)
+
+        cursor = "_" if len(session.initials_input) < MAX_INITIALS else ""
+        fields = (
+            ("INITIALS", session.initials_input + cursor),
+            ("PHONE LAST 4", session.phone_input.ljust(PHONE_DIGITS, "_")),
+        )
+        for index, (label, value) in enumerate(fields):
+            row_y = panel_y + 92 + index * 44
+            self._text_on_baseline(
+                label,
+                panel_x + 190,
+                row_y,
+                self.font_medium,
+                self.font_small,
+                PHOSPHOR,
+            )
+            self._text(value, panel_x + 400, row_y, self.font_medium, WHITE)
+        self._center_text(
+            f"{MIN_INITIALS}-{MAX_INITIALS} LETTER INITIALS + "
+            f"LAST {PHONE_DIGITS} PHONE DIGITS",
+            panel_y + 196,
+            self.font_small,
+            RED if session.name_entry_error else DIM,
+        )
+        self._left_aligned_block(
+            (f"{'ENTER':<7}SAVE", f"{'ESC':<7}SKIP"),
+            panel_y + 245,
+            32,
+            self.font_small,
+            PHOSPHOR,
+        )
 
     def _panel_lines(
         self,
@@ -768,6 +838,19 @@ class LunarLanderApp:
         color: tuple[int, int, int],
     ) -> None:
         self.screen.blit(font.render(text, True, color), (x, y))
+
+    def _text_on_baseline(
+        self,
+        text: str,
+        x: float,
+        y: float,
+        reference_font: pygame.font.Font,
+        font: pygame.font.Font,
+        color: tuple[int, int, int],
+    ) -> None:
+        """Draw text in font so its baseline matches reference_font text at y."""
+        baseline_offset = reference_font.get_ascent() - font.get_ascent()
+        self._text(text, x, y + baseline_offset, font, color)
 
     def _left_aligned_block(
         self,
