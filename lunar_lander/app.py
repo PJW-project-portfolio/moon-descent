@@ -13,15 +13,7 @@ import pygame
 
 from .game_state import GameSession, GameState
 from .models import LandingResult
-from .pilot_id import (
-    ENTRY_ERROR,
-    ENTRY_GUIDE,
-    INITIALS_LABEL,
-    KEYMAP_HINT,
-    MAX_INITIALS,
-    PHONE_DIGITS,
-    PHONE_LABEL,
-)
+from .pilot_id import MAX_INITIALS, MIN_INITIALS, PHONE_DIGITS
 from .settings import GameSettings
 from .resources import resource_path
 from .stages import STAGES, StageConfig
@@ -53,19 +45,13 @@ class LunarLanderApp:
         self.screen = pygame.display.set_mode(
             (self.settings.screen_width, self.settings.screen_height)
         )
-        # 초성은 두벌식 자판의 물리 키 위치로 입력받는다. 텍스트 입력(IME)을 켜 두면
-        # 한글 모드에서 자모 키의 KEYDOWN이 IME에 흡수되므로 꺼 둔다.
+        # 파일럿 ID는 키 코드로 읽는다. 텍스트 입력(IME)을 켜 두면 한/영이 한글
+        # 상태일 때 글자 키의 KEYDOWN이 IME에 흡수되므로 꺼 둔다.
         pygame.key.stop_text_input()
         self.clock = pygame.time.Clock()
         self.font_small = pygame.font.Font(resource_path("assets/fonts/DejaVuSansMono.ttf"), 18)
         self.font_medium = pygame.font.Font(resource_path("assets/fonts/DejaVuSansMono-Bold.ttf"), 28)
         self.font_large = pygame.font.Font(resource_path("assets/fonts/DejaVuSansMono-Bold.ttf"), 64)
-        # DejaVu에는 한글이 없어 초성·한글 안내문은 서브셋 한글 폰트로 그린다.
-        korean_font_path = resource_path("assets/fonts/NotoSansMonoCJKkr-Subset.otf")
-        self.font_korean_small = pygame.font.Font(korean_font_path, 18)
-        # 호환 자모는 음절보다 작게 디자인되어 표 안에서는 한 단계 키워 쓴다.
-        self.font_korean_table = pygame.font.Font(korean_font_path, 22)
-        self.font_korean_medium = pygame.font.Font(korean_font_path, 28)
         self.session = GameSession.create(self.settings, seed)
         self.running = True
         self.particles: list[Particle] = []
@@ -171,15 +157,11 @@ class LunarLanderApp:
 
     @staticmethod
     def _pilot_id_char(event: pygame.event.Event) -> str:
-        """Translate a key press into the character pilot_id expects.
-
-        Letters stay as their Latin key (upper case with Shift) so pilot_id
-        can map them to the consonant printed on the same 두벌식 key.
-        """
-        if pygame.K_a <= event.key <= pygame.K_z:
-            letter = chr(event.key)
-            return letter.upper() if event.mod & pygame.KMOD_SHIFT else letter
-        if pygame.K_0 <= event.key <= pygame.K_9:
+        """Translate a key press into a letter or digit for the pilot ID."""
+        if (
+            pygame.K_a <= event.key <= pygame.K_z
+            or pygame.K_0 <= event.key <= pygame.K_9
+        ):
             return chr(event.key)
         keypad = (
             pygame.K_KP0,
@@ -350,53 +332,30 @@ class LunarLanderApp:
 
     def _draw_leaderboard(self) -> None:
         self._center_text("LEADERBOARD", 75, self.font_large, PHOSPHOR)
-        # 고정폭 칸 단위: 순위·점수·천체 20칸, 초성 10칸 + 공백 1칸, 번호 4칸 + 공백
-        # 2칸, 날짜 10칸. 초성만 한글 폰트로 따로 그리므로 행을 칸 위치에 맞춰 나눈다.
-        char_width = self.font_small.size("0")[0]
-        pilot_column, phone_column, row_chars = 20, 31, 47
-        x = (self.settings.screen_width - row_chars * char_width) / 2
-        top, line_height = 175, 34
-        self._text(
-            f"{'#':>2}  {'SCORE':>7}  {'BODY':<7}{'PILOT':<17}DATE",
-            x,
-            top,
-            self.font_small,
-            AMBER,
-        )
+        # INITIALS 칸은 이전 버전의 닉네임(최대 10자)도 들어가도록 11칸을 둔다.
+        lines = [" #    SCORE  BODY   INITIALS   TEL   DATE"]
+        colors = [AMBER]
         for rank, entry in enumerate(
             self.session.leaderboard.entries,
             start=1,
         ):
-            row_y = top + rank * line_height
-            color = (
+            lines.append(
+                f"{rank:>2}  {entry['score']:>7}  {entry['body']:<7}"
+                f"{entry['initials']:<11}{entry['phone_last4']:<6}"
+                f"{entry['date']}"
+            )
+            colors.append(
                 AMBER
                 if entry is self.session.fresh_leaderboard_entry
                 else WHITE
             )
-            self._text(
-                f"{rank:>2}  {entry['score']:>7}  {entry['body']:<7}",
-                x,
-                row_y,
-                self.font_small,
-                color,
-            )
-            initials = entry["initials"]
-            self._text_on_baseline(
-                initials,
-                x + pilot_column * char_width,
-                row_y,
-                self.font_small,
-                # 초성 도입 전 영문 닉네임은 기존 폰트로 10칸 안에 맞춘다.
-                self.font_small if initials.isascii() else self.font_korean_table,
-                color,
-            )
-            self._text(
-                f"{entry['phone_last4']:<4}  {entry['date']}",
-                x + phone_column * char_width,
-                row_y,
-                self.font_small,
-                color,
-            )
+        self._left_aligned_block(
+            lines,
+            175,
+            34,
+            self.font_small,
+            colors,
+        )
         if self.session.leaderboard.storage_error:
             self._center_text(
                 "SAVE FAILED - CLOSE RECORDS.CSV IF IT IS OPEN",
@@ -752,7 +711,7 @@ class LunarLanderApp:
 
     def _draw_pilot_id_entry(self) -> None:
         session = self.session
-        panel_width, panel_height = 760, 430
+        panel_width, panel_height = 720, 330
         panel_x = self.settings.screen_width / 2 - panel_width / 2
         panel_y = self.settings.screen_height / 2 - panel_height / 2
         panel = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)
@@ -763,49 +722,30 @@ class LunarLanderApp:
 
         cursor = "_" if len(session.initials_input) < MAX_INITIALS else ""
         fields = (
-            (INITIALS_LABEL, session.initials_input + cursor),
-            (PHONE_LABEL, session.phone_input.ljust(PHONE_DIGITS, "_")),
+            ("INITIALS", session.initials_input + cursor),
+            ("PHONE LAST 4", session.phone_input.ljust(PHONE_DIGITS, "_")),
         )
         for index, (label, value) in enumerate(fields):
-            row_y = panel_y + 92 + index * 46
+            row_y = panel_y + 92 + index * 44
             self._text_on_baseline(
                 label,
-                panel_x + 170,
+                panel_x + 190,
                 row_y,
-                self.font_korean_medium,
-                self.font_korean_small,
+                self.font_medium,
+                self.font_small,
                 PHOSPHOR,
             )
-            self._text(
-                value,
-                panel_x + 430,
-                row_y,
-                self.font_korean_medium,
-                WHITE,
-            )
+            self._text(value, panel_x + 400, row_y, self.font_medium, WHITE)
         self._center_text(
-            ENTRY_GUIDE,
-            panel_y + 200,
-            self.font_korean_small,
-            DIM,
+            f"{MIN_INITIALS}-{MAX_INITIALS} LETTER INITIALS + "
+            f"LAST {PHONE_DIGITS} PHONE DIGITS",
+            panel_y + 196,
+            self.font_small,
+            RED if session.name_entry_error else DIM,
         )
-        self._left_aligned_block(
-            KEYMAP_HINT,
-            panel_y + 232,
-            28,
-            self.font_korean_small,
-            DIM,
-        )
-        if session.name_entry_error:
-            self._center_text(
-                ENTRY_ERROR,
-                panel_y + 300,
-                self.font_korean_small,
-                RED,
-            )
         self._left_aligned_block(
             (f"{'ENTER':<7}SAVE", f"{'ESC':<7}SKIP"),
-            panel_y + 345,
+            panel_y + 245,
             32,
             self.font_small,
             PHOSPHOR,

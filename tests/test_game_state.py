@@ -269,7 +269,7 @@ class GameSessionTests(unittest.TestCase):
         self.assertEqual(len(session.leaderboard.entries), 0)
         session.begin_name_entry()
         self.assertEqual(session.state, GameState.NAME_ENTRY)
-        for char in "grd0707":
+        for char in "hgd0707":
             session.edit_name(char)
         session.confirm_name_entry()
 
@@ -279,7 +279,7 @@ class GameSessionTests(unittest.TestCase):
         self.assertEqual(
             session.leaderboard.entries[0]["body"], "MOON"
         )
-        self.assertEqual(session.leaderboard.entries[0]["initials"], "ㅎㄱㅇ")
+        self.assertEqual(session.leaderboard.entries[0]["initials"], "HGD")
         self.assertEqual(session.leaderboard.entries[0]["phone_last4"], "0707")
         session.new_game()
         self.assertEqual(session.lives, 3)
@@ -359,7 +359,7 @@ class GameSessionTests(unittest.TestCase):
 
         self.assertEqual(session.state, GameState.NAME_ENTRY)
         self.assertEqual(len(session.leaderboard.entries), 0)
-        for char in "qwd1234":
+        for char in "hgd1234":
             session.edit_name(char)
         session.confirm_name_entry()
 
@@ -367,7 +367,7 @@ class GameSessionTests(unittest.TestCase):
         self.assertEqual(len(session.leaderboard.entries), 1)
         self.assertEqual(session.leaderboard.entries[0]["score"], 512)
         self.assertEqual(session.leaderboard.entries[0]["body"], "VENUS")
-        self.assertEqual(session.leaderboard.entries[0]["initials"], "ㅂㅈㅇ")
+        self.assertEqual(session.leaderboard.entries[0]["initials"], "HGD")
         self.assertEqual(session.leaderboard.entries[0]["phone_last4"], "1234")
 
     def test_venus_landing_requires_complete_pilot_id(self) -> None:
@@ -399,7 +399,7 @@ class GameSessionTests(unittest.TestCase):
         self.assertEqual(session.state, GameState.NAME_ENTRY)
         self.assertTrue(session.name_entry_error)
         self.assertEqual(len(session.leaderboard.entries), 0)
-        for char in "qw123":
+        for char in "hg123":
             session.edit_name(char)
         self.assertFalse(session.name_entry_error)
         session.confirm_name_entry()
@@ -414,14 +414,14 @@ class GameSessionTests(unittest.TestCase):
         self.assertEqual(
             session.leaderboard.entries[0]["body"], "VENUS"
         )
-        self.assertEqual(session.leaderboard.entries[0]["initials"], "ㅂㅈ")
+        self.assertEqual(session.leaderboard.entries[0]["initials"], "HG")
 
     def test_name_entry_starts_empty_and_skip_does_not_record(self) -> None:
         session = GameSession.create(seed=16)
         session.new_game()
         session.state = GameState.STAGE_CLEAR
         session.begin_name_entry()
-        for char in "qwd1234":
+        for char in "hgd1234":
             session.edit_name(char)
         session.skip_name_entry()
         self.assertEqual(session.state, GameState.LEADERBOARD)
@@ -439,12 +439,12 @@ class GameSessionTests(unittest.TestCase):
         session.new_game()
         session.score = 900
 
-        first = session.record_run("ㅂㅈㅇ", "1234")
-        second = session.record_run("ㄱㄴ", "5678")
+        first = session.record_run("HGD", "1234")
+        second = session.record_run("KY", "5678")
 
         self.assertIs(first, second)
         self.assertEqual(len(session.leaderboard.entries), 1)
-        self.assertEqual(session.leaderboard.entries[0]["initials"], "ㅂㅈㅇ")
+        self.assertEqual(session.leaderboard.entries[0]["initials"], "HGD")
         self.assertEqual(session.leaderboard.entries[0]["phone_last4"], "1234")
 
     def test_time_bonus_under_par(self) -> None:

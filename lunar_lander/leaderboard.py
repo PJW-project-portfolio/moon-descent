@@ -69,7 +69,7 @@ class Leaderboard:
         try:
             score = int(value["score"])
             body = str(value["body"])
-            # 초성 도입 전 기록은 기존 닉네임을 초성 칸에 그대로 보여 준다.
+            # 파일럿 ID 도입 전 기록은 기존 닉네임을 이니셜 칸에 보여 준다.
             initials = str(value.get("initials", value.get("name", "----")))
             phone_last4 = str(value.get("phone_last4", "----"))
             entry_date = str(value["date"])
@@ -131,10 +131,8 @@ class Leaderboard:
                 not self.records_path.exists()
                 or self.records_path.stat().st_size == 0
             )
-            # utf-8-sig: 엑셀에서 열어도 초성이 깨지지 않도록 파일 맨 앞에만
-            # BOM을 쓴다(이어 쓰기에서는 BOM을 다시 쓰지 않음).
             with self.records_path.open(
-                "a", encoding="utf-8-sig", newline=""
+                "a", encoding="utf-8", newline=""
             ) as records_file:
                 writer = csv.writer(records_file)
                 if write_header:

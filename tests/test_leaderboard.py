@@ -10,7 +10,7 @@ from lunar_lander.leaderboard import RECORD_FIELDS, Leaderboard
 
 
 def read_records(path: Path) -> list[list[str]]:
-    with path.open(encoding="utf-8-sig", newline="") as records_file:
+    with path.open(encoding="utf-8", newline="") as records_file:
         return list(csv.reader(records_file))
 
 
@@ -45,7 +45,7 @@ class LeaderboardTests(unittest.TestCase):
                     420,
                     "MARS",
                     "2026-07-30",
-                    initials="ㅂㅈㅇ",
+                    initials="HGD",
                     phone_last4="0412",
                 )
                 reloaded = Leaderboard()
@@ -56,14 +56,14 @@ class LeaderboardTests(unittest.TestCase):
                     {
                         "score": 420,
                         "body": "MARS",
-                        "initials": "ㅂㅈㅇ",
+                        "initials": "HGD",
                         "phone_last4": "0412",
                         "date": "2026-07-30",
                     }
                 ],
             )
             stored = json.loads(path.read_text(encoding="utf-8"))
-            self.assertEqual(stored["entries"][0]["initials"], "ㅂㅈㅇ")
+            self.assertEqual(stored["entries"][0]["initials"], "HGD")
             self.assertEqual(stored["entries"][0]["phone_last4"], "0412")
             self.assertNotIn("last_name", stored)
 
@@ -124,7 +124,7 @@ class RecordsLogTests(unittest.TestCase):
                 leaderboard.add_entry(
                     score,
                     "MOON",
-                    initials="ㅂㅈㅇ",
+                    initials="HGD",
                     phone_last4=f"{score:04d}",
                     recorded_at=datetime(2026, 9, 24, 14, 3, score),
                 )
@@ -136,21 +136,20 @@ class RecordsLogTests(unittest.TestCase):
             self.assertEqual(len(rows), 13)
             self.assertEqual(
                 rows[1],
-                ["2026-09-24 14:03:00", "ㅂㅈㅇ", "0000", "0", "MOON"],
+                ["2026-09-24 14:03:00", "HGD", "0000", "0", "MOON"],
             )
             self.assertEqual(rows[-1][2], "0011")
             self.assertFalse(leaderboard.storage_error)
 
-    def test_log_starts_with_a_single_bom_for_excel(self) -> None:
+    def test_header_is_written_once_across_sessions(self) -> None:
         with TemporaryDirectory() as temporary_directory:
             path = Path(temporary_directory) / "leaderboard.json"
-            Leaderboard(path).add_entry(10, "MOON", initials="ㄱㄴ")
-            Leaderboard(path).add_entry(20, "MARS", initials="ㄷㄹ")
+            Leaderboard(path).add_entry(10, "MOON", initials="GN")
+            Leaderboard(path).add_entry(20, "MARS", initials="DR")
 
-            raw = (Path(temporary_directory) / "records.csv").read_bytes()
-            self.assertTrue(raw.startswith(b"\xef\xbb\xbf"))
-            self.assertEqual(raw.count(b"\xef\xbb\xbf"), 1)
-            self.assertEqual(raw.count(b"recorded_at"), 1)
+            rows = read_records(Path(temporary_directory) / "records.csv")
+            self.assertEqual(rows[0], list(RECORD_FIELDS))
+            self.assertEqual([row[1] for row in rows[1:]], ["GN", "DR"])
 
     def test_unwritable_log_is_reported_and_retried_next_run(self) -> None:
         with TemporaryDirectory() as temporary_directory:
@@ -161,18 +160,18 @@ class RecordsLogTests(unittest.TestCase):
             )
             records_path.mkdir()  # 파일 자리를 막아 쓰기 실패를 재현
 
-            leaderboard.add_entry(10, "MOON", initials="ㄱㄴ")
+            leaderboard.add_entry(10, "MOON", initials="GN")
 
             self.assertTrue(leaderboard.storage_error)
             self.assertEqual(len(leaderboard.entries), 1)
             records_path.rmdir()
-            leaderboard.add_entry(20, "MARS", initials="ㄷㄹ")
+            leaderboard.add_entry(20, "MARS", initials="DR")
 
             self.assertFalse(leaderboard.storage_error)
             rows = read_records(records_path)
             self.assertEqual(
                 [row[1] for row in rows[1:]],
-                ["ㄱㄴ", "ㄷㄹ"],
+                ["GN", "DR"],
             )
 
 
