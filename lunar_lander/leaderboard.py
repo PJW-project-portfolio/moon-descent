@@ -6,6 +6,9 @@ import csv
 from datetime import datetime
 import json
 from pathlib import Path
+import shutil
+import sys
+import tempfile
 from typing import TypedDict
 
 
@@ -14,12 +17,37 @@ RECORDS_FILENAME = "records.csv"
 RECORD_FIELDS = ("recorded_at", "initials", "phone_last4", "score", "body")
 
 
+def _game_folder() -> Path:
+    """Folder the game was launched from: project root or packaged app folder."""
+    if getattr(sys, "frozen", False):
+        folder = Path(sys.executable).resolve().parent
+        # macOS: MoonDescent.app/Contents/MacOS → .app을 담고 있는 폴더
+        if folder.name == "MacOS" and folder.parent.name == "Contents":
+            folder = folder.parent.parent.parent
+        return folder
+    return Path(__file__).resolve().parent.parent
+
+
+# 운영자가 바로 찾을 수 있도록 게임 폴더 옆 records/에 저장한다.
+LEADERBOARD_PATH = _game_folder() / "records" / "leaderboard.json"
+
+# 이전 버전의 저장 위치. 게임 폴더에 쓸 수 없을 때의 대체 경로이기도 하다.
 try:
-    LEADERBOARD_PATH = (
+    LEGACY_LEADERBOARD_PATH = (
         Path.home() / ".moon_descent" / "leaderboard.json"
     )
 except (OSError, RuntimeError):
-    LEADERBOARD_PATH = Path(".moon_descent") / "leaderboard.json"
+    LEGACY_LEADERBOARD_PATH = Path(".moon_descent") / "leaderboard.json"
+
+
+def _is_writable_dir(folder: Path) -> bool:
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryFile(dir=folder):
+            pass
+    except OSError:
+        return False
+    return True
 
 
 class LeaderboardEntry(TypedDict):
@@ -43,7 +71,16 @@ class Leaderboard:
         path: Path | None = None,
         records_path: Path | None = None,
     ) -> None:
-        self.path = Path(path) if path is not None else LEADERBOARD_PATH
+        use_default = path is None
+        if path is None:
+            # 게임 폴더가 읽기 전용이면(예: 다운로드 폴더에서 바로 연 macOS 앱)
+            # 이전 위치인 홈 폴더를 쓴다.
+            path = (
+                LEADERBOARD_PATH
+                if _is_writable_dir(LEADERBOARD_PATH.parent)
+                else LEGACY_LEADERBOARD_PATH
+            )
+        self.path = Path(path)
         self.records_path = (
             Path(records_path)
             if records_path is not None
@@ -52,7 +89,30 @@ class Leaderboard:
         self.entries: list[LeaderboardEntry] = []
         self.storage_error = False
         self._pending_records: list[tuple[str, str, str, int, str]] = []
+        if use_default:
+            self._adopt_legacy_files()
         self.load()
+
+    def _adopt_legacy_files(self) -> None:
+        """Copy files an older version kept in the home folder, once.
+
+        The originals stay where they are; nothing is copied over files
+        that already exist in the current folder.
+        """
+        legacy_records_path = LEGACY_LEADERBOARD_PATH.with_name(
+            RECORDS_FILENAME
+        )
+        for legacy, current in (
+            (LEGACY_LEADERBOARD_PATH, self.path),
+            (legacy_records_path, self.records_path),
+        ):
+            if legacy == current or current.exists() or not legacy.is_file():
+                continue
+            try:
+                current.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(legacy, current)
+            except OSError:
+                pass
 
     @staticmethod
     def _sorted(entries: list[LeaderboardEntry]) -> list[LeaderboardEntry]:
