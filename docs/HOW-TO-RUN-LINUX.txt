@@ -12,7 +12,15 @@ tar xzf MoonDescent-linux.tar.gz
 ↑ 또는 Space       추진
 P                  일시정지
 R                  재시작
+L                  리더보드 (스테이지 클리어 화면에서는 점수 기록 후 종료)
 Esc                종료
 Enter / Space      시작·다음
+
+점수 기록
+
+점수를 기록할 때 영문 이니셜 2~4자와 전화번호 뒤 4자리를 입력합니다.
+예: 홍길동, 010-1234-0412 → HGD 0412
+한/영 상태와 관계없이 영문으로 입력되며, Enter로 저장하고 Esc로 건너뜁니다.
+기록은 MoonDescent 실행 파일과 같은 폴더의 records 폴더에 저장됩니다.
 
 설치가 어렵다면 컴퓨터 브라우저에서 바로 플레이할 수 있습니다: https://pjw-project-portfolio.github.io/moon-descent/

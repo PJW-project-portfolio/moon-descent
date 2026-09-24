@@ -1,14 +1,16 @@
 Moon Descent 실행 방법 (macOS)
 
 1. 받은 zip 파일을 더블클릭해 압축을 푸세요.
-2. 압축을 푼 폴더 안의 MoonDescent.app을 더블클릭하면 게임이 시작됩니다.
+2. 압축을 푼 MoonDescent-macos 폴더 안의 MoonDescent.app을 더블클릭하면 게임이 시작됩니다.
 
 차단 팝업이 뜨면 다음 순서로 허용해 주세요.
 시스템 설정 → 개인정보 보호 및 보안 → 아래쪽 "그래도 열기" → 다시 실행
 
-그래도 실행되지 않으면 터미널을 열고 아래 명령을 입력한 뒤 다시 실행해 주세요.
+그래도 실행되지 않으면 터미널을 열고 xattr -cr 까지 입력한 뒤 한 칸 띄우고,
+MoonDescent.app을 터미널 창으로 끌어다 놓아 경로를 채운 다음 Enter를 누르세요.
+그 뒤 다시 실행하면 됩니다. 다운로드 폴더에 압축을 풀었다면 아래와 같습니다.
 
-xattr -cr ~/Downloads/MoonDescent.app
+xattr -cr ~/Downloads/MoonDescent-macos/MoonDescent.app
 
 이 실행 파일은 2020년 이후 판매된 맥(Apple Silicon) 전용입니다.
 
@@ -19,7 +21,18 @@ xattr -cr ~/Downloads/MoonDescent.app
 ↑ 또는 Space       추진
 P                  일시정지
 R                  재시작
+L                  리더보드 (스테이지 클리어 화면에서는 점수 기록 후 종료)
 Esc                종료
 Enter / Space      시작·다음
+
+점수 기록
+
+점수를 기록할 때 영문 이니셜 2~4자와 전화번호 뒤 4자리를 입력합니다.
+예: 홍길동, 010-1234-0412 → HGD 0412
+한/영 상태와 관계없이 영문으로 입력되며, Enter로 저장하고 Esc로 건너뜁니다.
+기록은 MoonDescent.app과 같은 폴더의 records 폴더에 저장됩니다.
+단, 받은 그대로의 앱을 열면 macOS 보안 정책 때문에 앱 옆에 쓸 수 없어
+홈 폴더의 .moon_descent 폴더에 저장될 수 있습니다. 위의 xattr 명령을 실행했거나
+MoonDescent.app을 다른 폴더로 옮긴 뒤 열면 records 폴더에 저장됩니다.
 
 설치가 어렵다면 컴퓨터 브라우저에서 바로 플레이할 수 있습니다: https://pjw-project-portfolio.github.io/moon-descent/

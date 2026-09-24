@@ -4,20 +4,57 @@
 제한된 연료로 착륙선의 자세와 속도를 제어해 표시된 착륙 지점에 안전하게
 내려앉는 것이 목표입니다.
 
-## 실행 환경
+## 설치와 실행 (소스 코드)
 
-- Python 3.10 이상
-- Pygame 2.5 이상
+Python이 없는 컴퓨터에 나눠 줄 때는 아래 "간편 실행과 배포"의 실행 파일이나 웹 링크를
+쓰세요. 이 절은 저장소를 받아 직접 실행하는 방법입니다. 대여 노트북에서 점수를 기록하는
+경우도 여기에 해당합니다.
 
-가상 환경 사용을 권장합니다.
+### 준비물
+
+- **Python 3.10~3.13** (3.13 권장). pygame 2.6.1은 3.14용 설치 파일이 없어, Python 3.14에서는
+  `pip install`이 실패합니다. 3.14만 있다면 python.org에서 3.13을 함께 설치하세요.
+  Windows에서는 설치 첫 화면의 "Add python.exe to PATH"를 체크합니다.
+- **Git** (없으면 GitHub 저장소 페이지의 `Code → Download ZIP`으로 받아 압축을 풀어도 됩니다.
+  이때 폴더 이름은 `moon-descent-main`입니다.)
+
+### 처음 설치
+
+Windows (PowerShell 또는 명령 프롬프트):
+
+```bat
+git clone https://github.com/PJW-project-portfolio/moon-descent.git
+cd moon-descent
+py -3.13 -m venv .venv
+.venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python main.py
+```
+
+`py -3.13`의 숫자는 설치한 버전에 맞게 바꿉니다(예: `py -3.12`). 가상 환경을 활성화하지 않고
+`.venv\Scripts\python`을 직접 부르므로, PowerShell의 스크립트 실행 제한에 걸리지 않습니다.
+
+macOS / 리눅스:
 
 ```bash
-cd lunar_lander_game
+git clone https://github.com/PJW-project-portfolio/moon-descent.git
+cd moon-descent
 python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python main.py
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python main.py
 ```
+
+### 다시 실행 / 최신 버전으로 업데이트
+
+```bat
+cd moon-descent
+git pull
+.venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python main.py
+```
+
+macOS/리눅스는 `.venv\Scripts\python` 대신 `.venv/bin/python`을 씁니다. 코드가 바뀌지 않았다면
+마지막 줄만 실행하면 됩니다. 기록은 `moon-descent/records/`에 쌓이며 `git pull`로 지워지지
+않습니다(자세한 내용은 아래 "기록 파일 위치").
 
 ## 간편 실행과 배포
 
