@@ -17,12 +17,13 @@ class GameSessionTests(unittest.TestCase):
     def setUp(self) -> None:
         temporary_directory = TemporaryDirectory()
         self.addCleanup(temporary_directory.cleanup)
-        path_patch = patch(
-            "lunar_lander.leaderboard.LEADERBOARD_PATH",
-            Path(temporary_directory.name) / "leaderboard.json",
-        )
-        path_patch.start()
-        self.addCleanup(path_patch.stop)
+        for name in ("LEADERBOARD_PATH", "LEGACY_LEADERBOARD_PATH"):
+            path_patch = patch(
+                f"lunar_lander.leaderboard.{name}",
+                Path(temporary_directory.name) / name / "leaderboard.json",
+            )
+            path_patch.start()
+            self.addCleanup(path_patch.stop)
 
     def test_new_game_and_pause_flow(self) -> None:
         session = GameSession.create(seed=1)

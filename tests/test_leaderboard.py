@@ -2,10 +2,12 @@ import csv
 from datetime import datetime
 import json
 from pathlib import Path
+import sys
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
+from lunar_lander import leaderboard as leaderboard_module
 from lunar_lander.leaderboard import RECORD_FIELDS, Leaderboard
 
 
@@ -39,6 +41,9 @@ class LeaderboardTests(unittest.TestCase):
             with patch(
                 "lunar_lander.leaderboard.LEADERBOARD_PATH",
                 path,
+            ), patch(
+                "lunar_lander.leaderboard.LEGACY_LEADERBOARD_PATH",
+                Path(temporary_directory) / "legacy" / "leaderboard.json",
             ):
                 leaderboard = Leaderboard()
                 leaderboard.add_entry(
@@ -173,6 +178,113 @@ class RecordsLogTests(unittest.TestCase):
                 [row[1] for row in rows[1:]],
                 ["GN", "DR"],
             )
+
+
+class DefaultLocationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        self.root = Path(temporary_directory.name)
+        self.game_path = self.root / "game" / "records" / "leaderboard.json"
+        self.legacy_path = self.root / "home" / ".moon_descent" / "leaderboard.json"
+        for name, value in (
+            ("LEADERBOARD_PATH", self.game_path),
+            ("LEGACY_LEADERBOARD_PATH", self.legacy_path),
+        ):
+            path_patch = patch(f"lunar_lander.leaderboard.{name}", value)
+            path_patch.start()
+            self.addCleanup(path_patch.stop)
+
+    def write_legacy_files(self) -> None:
+        self.legacy_path.parent.mkdir(parents=True)
+        self.legacy_path.write_text(
+            json.dumps(
+                {
+                    "entries": [
+                        {
+                            "score": 300,
+                            "body": "MARS",
+                            "initials": "HGD",
+                            "phone_last4": "0412",
+                            "date": "2026-09-24",
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        self.legacy_path.with_name("records.csv").write_text(
+            "recorded_at,initials,phone_last4,score,body\n"
+            "2026-09-24 10:00:00,HGD,0412,300,MARS\n",
+            encoding="utf-8",
+        )
+
+    def test_records_go_to_the_game_folder_by_default(self) -> None:
+        leaderboard = Leaderboard()
+        leaderboard.add_entry(10, "MOON", initials="GN", phone_last4="1111")
+
+        self.assertEqual(leaderboard.path, self.game_path)
+        self.assertTrue(self.game_path.is_file())
+        self.assertTrue(self.game_path.with_name("records.csv").is_file())
+        self.assertFalse(self.legacy_path.parent.exists())
+
+    def test_unwritable_game_folder_falls_back_to_home_folder(self) -> None:
+        blocker = self.root / "game"
+        blocker.write_text("not a folder", encoding="utf-8")
+
+        leaderboard = Leaderboard()
+
+        self.assertEqual(leaderboard.path, self.legacy_path)
+        self.assertEqual(
+            leaderboard.records_path,
+            self.legacy_path.with_name("records.csv"),
+        )
+
+    def test_legacy_files_are_copied_once_and_kept(self) -> None:
+        self.write_legacy_files()
+
+        leaderboard = Leaderboard()
+
+        self.assertEqual(leaderboard.entries[0]["initials"], "HGD")
+        self.assertEqual(
+            read_records(self.game_path.with_name("records.csv"))[1][1],
+            "HGD",
+        )
+        self.assertTrue(self.legacy_path.is_file())
+
+    def test_existing_game_folder_files_are_not_overwritten(self) -> None:
+        self.write_legacy_files()
+        Leaderboard().add_entry(50, "MOON", initials="KY", phone_last4="2222")
+        self.legacy_path.write_text('{"entries": []}', encoding="utf-8")
+
+        reloaded = Leaderboard()
+
+        self.assertEqual(
+            [entry["initials"] for entry in reloaded.entries],
+            ["HGD", "KY"],
+        )
+
+
+class GameFolderTests(unittest.TestCase):
+    def test_source_checkout_uses_the_project_root(self) -> None:
+        folder = leaderboard_module._game_folder()
+        self.assertTrue((folder / "main.py").is_file())
+
+    def test_packaged_build_uses_the_executable_folder(self) -> None:
+        with patch.object(sys, "frozen", True, create=True), patch.object(
+            sys, "executable", "/opt/MoonDescent/MoonDescent.exe"
+        ):
+            folder = leaderboard_module._game_folder()
+        self.assertEqual(folder, Path("/opt/MoonDescent").resolve())
+
+    def test_macos_app_uses_the_folder_holding_the_bundle(self) -> None:
+        with patch.object(sys, "frozen", True, create=True), patch.object(
+            sys,
+            "executable",
+            "/Users/pilot/Games/MoonDescent.app/Contents/MacOS/MoonDescent",
+        ):
+            folder = leaderboard_module._game_folder()
+        self.assertEqual(folder, Path("/Users/pilot/Games").resolve())
 
 
 if __name__ == "__main__":

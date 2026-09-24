@@ -71,8 +71,7 @@ python3 -m http.server 8000
 
 `?seed=숫자`를 주소에 붙이면 같은 지형을 재현할 수 있습니다.
 
-웹 배포: 다음 `./release.sh` 실행(Pages 재배포) 이후에는
-https://pjw-project-portfolio.github.io/moon-descent/3d/ 에서도 플레이할 수 있습니다.
+웹 버전: https://pjw-project-portfolio.github.io/moon-descent/3d/ 에서도 플레이할 수 있습니다.
 
 ### 3D 조작법
 
@@ -185,14 +184,31 @@ node --test web3d/tests/*.test.mjs
   않고 넘어갑니다.
 - 공용 기기를 전제로 이전 참가자의 ID를 미리 채워 두지 않습니다.
 
-기록은 실행한 OS 사용자의 홈 폴더 아래 `.moon_descent/`에 두 파일로 저장됩니다.
-(Windows: `C:\Users\<사용자명>\.moon_descent\`, macOS/리눅스: `~/.moon_descent/`)
+### 기록 파일 위치
+
+기록은 **게임 폴더 바로 옆의 `records/` 폴더**에 두 파일로 저장됩니다. 게임을 실행한
+폴더만 열면 바로 찾을 수 있습니다.
+
+| 실행 방법 | 기록 폴더 |
+|---|---|
+| 저장소를 받아 `python main.py` | `moon-descent/records/` (`main.py`와 같은 폴더) |
+| Windows 실행 파일 | `MoonDescent\records\` (`MoonDescent.exe`와 같은 폴더) |
+| macOS 앱 | `MoonDescent.app`이 있는 폴더의 `records/` |
+| 리눅스 실행 파일 | 실행 파일과 같은 폴더의 `records/` |
 
 | 파일 | 내용 |
 |---|---|
 | `leaderboard.json` | 화면에 표시되는 상위 10개 기록 |
 | `records.csv` | 기록한 **모든** 판(10위 밖 포함). 열: `recorded_at, initials, phone_last4, score, body` |
 
+- 게임 폴더에 쓸 수 없으면 홈 폴더의 `.moon_descent/`에 저장합니다.
+  (Windows: `C:\Users\<사용자명>\.moon_descent\`, macOS/리눅스: `~/.moon_descent/`)
+  예를 들어 macOS 앱을 다운로드 폴더에서 옮기지 않고 바로 열면 이렇게 됩니다.
+  앱을 `응용 프로그램`이나 다른 폴더로 옮긴 뒤 실행하면 `records/`에 저장됩니다.
+- 예전 버전이 `~/.moon_descent/`에 남긴 기록은 처음 실행할 때 `records/`로 한 번 복사됩니다.
+  원본은 그대로 두고, `records/`에 이미 있는 파일은 덮어쓰지 않습니다.
+- `records/`는 `.gitignore`에 들어 있어 `./release.sh`(`git add -A`)를 실행해도
+  참가자의 이니셜·전화번호가 GitHub에 올라가지 않습니다.
 - 엑셀은 `0412` 같은 번호의 앞자리 0을 숨길 수 있으니 번호는 4자리 기준으로 읽으세요.
 - 게임 중에 `records.csv`를 엑셀로 열어 두면 Windows에서 파일이 잠겨 저장이 실패합니다.
   이때 리더보드 화면에 빨간 `SAVE FAILED` 문구가 뜨며, 저장하지 못한 줄은 파일을 닫은 뒤
