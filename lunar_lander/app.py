@@ -228,6 +228,12 @@ class LunarLanderApp:
         self.previous_state = self.session.state
 
     def _update_particles(self, dt: float) -> None:
+        terrain = self.session.terrain
+        world_width = (
+            float(terrain.width)
+            if terrain is not None
+            else self.settings.world_width
+        )
         alive: list[Particle] = []
         for particle in self.particles:
             particle.life -= dt
@@ -235,7 +241,7 @@ class LunarLanderApp:
                 continue
             particle.x = (
                 particle.x + particle.velocity_x * dt
-            ) % self.settings.world_width
+            ) % world_width
             particle.y += particle.velocity_y * dt
             particle.velocity_y += 20.0 * dt
             alive.append(particle)

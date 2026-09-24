@@ -35,7 +35,7 @@ class GameSessionTests(unittest.TestCase):
         self.assertIsNotNone(session.terrain)
         self.assertIsNotNone(session.lander)
         self.assertEqual(session.current_stage, STAGES[0])
-        self.assertEqual(session.terrain.width, session.settings.world_width)
+        self.assertEqual(session.terrain.width, STAGES[0].world_width_px)
         session.toggle_pause()
         self.assertEqual(session.state, GameState.PAUSED)
         session.toggle_pause()
@@ -76,6 +76,8 @@ class GameSessionTests(unittest.TestCase):
         self.assertEqual(session.state, GameState.PLAYING)
         self.assertEqual(session.stage, 2)
         assert session.lander is not None
+        assert session.terrain is not None
+        self.assertEqual(session.terrain.width, STAGES[1].world_width_px)
         self.assertEqual(session.stage_start_fuel, expected_fuel)
         self.assertEqual(session.lander.fuel, expected_fuel)
         self.assertEqual(
@@ -205,6 +207,25 @@ class GameSessionTests(unittest.TestCase):
             STAGES[-1].entry_speed_ms * pixels_per_meter,
         )
         self.assertEqual(session.lander.velocity_y, 0.0)
+
+    def test_final_stage_map_is_narrower_and_lander_wraps_at_its_seam(
+        self,
+    ) -> None:
+        session = GameSession.create(seed=7)
+        session.new_game()
+        session.stage = len(STAGES)
+        session._prepare_round(session.settings.fuel_capacity)
+        assert session.terrain is not None
+        assert session.lander is not None
+        width = STAGES[-1].world_width_px
+        self.assertEqual(session.terrain.width, width)
+        self.assertEqual(len(session.terrain.pads), 4)
+
+        session.lander.x = width - 1.0
+        session.lander.velocity_x = 20.0
+        session.update(0.1)
+        self.assertEqual(session.state, GameState.PLAYING)
+        self.assertAlmostEqual(session.lander.x, 1.0)
 
     def test_later_stage_retry_restores_that_stages_starting_fuel(self) -> None:
         session = GameSession.create(seed=12)

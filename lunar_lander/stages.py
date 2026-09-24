@@ -10,6 +10,7 @@ class StageConfig:
     entry_speed_ms: float        # 시작 수평 진입 속도 (m/s)
     fuel_burn_per_second: float  # 스테이지별 연료 소모율 (밸런스 튜닝값)
     par_time_seconds: float      # 시간 보너스 기준 기록
+    world_width_px: int          # 래핑 맵 한 바퀴 폭 (스테이지마다 400px씩 축소)
     sky: tuple[int, int, int]
     terrain_color: tuple[int, int, int]
     ground_fill: tuple[int, int, int]
@@ -24,6 +25,7 @@ STAGES = (
         5.0,
         10.0,
         45.0,
+        6400,
         (4, 7, 9),
         (180, 255, 202),
         (8, 18, 16),
@@ -36,6 +38,7 @@ STAGES = (
         7.0,
         9.0,
         50.0,
+        6000,
         (14, 6, 4),
         (255, 138, 84),
         (32, 11, 6),
@@ -48,6 +51,7 @@ STAGES = (
         8.0,
         7.0,
         60.0,
+        5600,
         (20, 15, 5),
         (236, 198, 108),
         (36, 27, 9),
