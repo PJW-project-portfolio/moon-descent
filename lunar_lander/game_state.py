@@ -4,8 +4,9 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 import random
 
-from .leaderboard import Leaderboard, LeaderboardEntry, apply_name_key
+from .leaderboard import Leaderboard, LeaderboardEntry
 from .models import Lander, LandingResult
+from .pilot_id import apply_pilot_id_key, is_valid_pilot_id
 from .settings import (
     GameSettings,
     MAX_TIME_BONUS_FUEL,
@@ -63,7 +64,9 @@ class GameSession:
     last_landing_result: LandingResult = LandingResult.FLYING
     fresh_leaderboard_entry: LeaderboardEntry | None = None
     run_recorded: bool = False
-    name_input: str = ""
+    initials_input: str = ""
+    phone_input: str = ""
+    name_entry_error: bool = False
 
     @classmethod
     def create(
@@ -111,7 +114,7 @@ class GameSession:
         self.last_fuel_bonus = 0.0
         self.fresh_leaderboard_entry = None
         self.run_recorded = False
-        self.name_input = ""
+        self._clear_name_entry()
         self._prepare_round(self.settings.fuel_capacity)
 
     def _prepare_round(self, fuel: float) -> None:
@@ -294,7 +297,7 @@ class GameSession:
             )
             self._spawn_lander(retry_fuel)
 
-    def record_run(self, name: str) -> LeaderboardEntry:
+    def record_run(self, initials: str, phone_last4: str) -> LeaderboardEntry:
         """Record this run at most once and expose it for UI highlighting."""
         if self.run_recorded and self.fresh_leaderboard_entry is not None:
             return self.fresh_leaderboard_entry
@@ -303,10 +306,16 @@ class GameSession:
         self.fresh_leaderboard_entry = self.leaderboard.add_entry(
             self.final_score,
             self.current_stage.name,
-            name=name,
+            initials=initials,
+            phone_last4=phone_last4,
         )
         self.run_recorded = True
         return self.fresh_leaderboard_entry
+
+    def _clear_name_entry(self) -> None:
+        self.initials_input = ""
+        self.phone_input = ""
+        self.name_entry_error = False
 
     def begin_name_entry(self) -> None:
         if self.state not in (
@@ -315,19 +324,24 @@ class GameSession:
             GameState.GAME_OVER,
         ):
             return
-        self.name_input = ""
-        for char in self.leaderboard.last_name:
-            self.name_input = apply_name_key(self.name_input, char)
+        # 여러 사람이 번갈아 하는 기기이므로 이전 참가자 정보를 채워 두지 않는다.
+        self._clear_name_entry()
         self.state = GameState.NAME_ENTRY
 
     def edit_name(self, char: str) -> None:
         if self.state == GameState.NAME_ENTRY:
-            self.name_input = apply_name_key(self.name_input, char)
+            self.initials_input, self.phone_input = apply_pilot_id_key(
+                self.initials_input, self.phone_input, char
+            )
+            self.name_entry_error = False
 
     def confirm_name_entry(self) -> LeaderboardEntry | None:
         if self.state != GameState.NAME_ENTRY:
             return None
-        entry = self.record_run(self.name_input or "PILOT")
+        if not is_valid_pilot_id(self.initials_input, self.phone_input):
+            self.name_entry_error = True
+            return None
+        entry = self.record_run(self.initials_input, self.phone_input)
         self.state = GameState.LEADERBOARD
         return entry
 
