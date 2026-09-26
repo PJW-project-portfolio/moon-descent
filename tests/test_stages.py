@@ -23,6 +23,10 @@ class StageDefinitionTests(unittest.TestCase):
             [stage.par_time_seconds for stage in STAGES],
             [45.0, 50.0, 60.0],
         )
+        self.assertEqual(
+            [stage.world_width_px for stage in STAGES],
+            [6400, 6000, 5600],
+        )
 
     def test_stage_background_palettes_are_distinct(self) -> None:
         self.assertEqual(len({stage.sky for stage in STAGES}), 3)

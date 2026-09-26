@@ -37,6 +37,7 @@ class Lander:
         gravity: float,
         settings: GameSettings,
         fuel_burn_per_second: float | None = None,
+        world_width: float | None = None,
     ) -> None:
         """Advance the lander with stable substeps and exact fuel-limited thrust."""
         remaining = max(0.0, dt)
@@ -45,6 +46,9 @@ class Lander:
             settings.fuel_burn_per_second
             if fuel_burn_per_second is None
             else fuel_burn_per_second
+        )
+        wrap_width = (
+            settings.world_width if world_width is None else world_width
         )
 
         while remaining > 1e-9:
@@ -72,7 +76,7 @@ class Lander:
                 self.velocity_y -= math.cos(radians) * thrust_delta_v
                 fired_thruster = True
 
-            self.x = (self.x + self.velocity_x * step) % settings.world_width
+            self.x = (self.x + self.velocity_x * step) % wrap_width
             self.y += self.velocity_y * step
             remaining -= step
 

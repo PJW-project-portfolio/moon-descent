@@ -56,6 +56,11 @@ class LanderPhysicsTests(unittest.TestCase):
         lander.update(0.1, 0.0, False, 0.0, self.settings)
         self.assertAlmostEqual(lander.x, 1.0)
 
+    def test_horizontal_position_wraps_at_given_stage_width(self) -> None:
+        lander = Lander(5599.0, 100.0, velocity_x=20.0)
+        lander.update(0.1, 0.0, False, 0.0, self.settings, world_width=5600.0)
+        self.assertAlmostEqual(lander.x, 1.0)
+
     def test_large_frame_matches_repeated_small_steps(self) -> None:
         one_frame = Lander(100.0, 100.0, velocity_x=35.0)
         small_steps = Lander(100.0, 100.0, velocity_x=35.0)

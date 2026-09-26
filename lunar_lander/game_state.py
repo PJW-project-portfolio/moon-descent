@@ -120,7 +120,7 @@ class GameSession:
     def _prepare_round(self, fuel: float) -> None:
         self.stage_start_fuel = fuel
         self.terrain = Terrain.generate(
-            int(self.settings.world_width),
+            self.current_stage.world_width_px,
             self.settings.screen_height,
             self.stage,
             self.settings.screen_width / 2.0,
@@ -206,6 +206,7 @@ class GameSession:
             self.gravity,
             self.settings,
             self.current_stage.fuel_burn_per_second,
+            self.terrain.width,
         )
 
         collision_points = self.lander.collision_points()

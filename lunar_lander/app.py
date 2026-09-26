@@ -25,6 +25,17 @@ WHITE = (230, 245, 236)
 AMBER = (255, 193, 92)
 RED = (255, 92, 92)
 DIM = (74, 110, 92)
+STAR_PARALLAX = 0.3  # 별은 지형 이동의 30%만 흘러 원경처럼 보인다
+
+
+def star_field_width(world_width: float) -> float:
+    """Width of the repeating star strip: one map lap scrolls it exactly once."""
+    return world_width * STAR_PARALLAX
+
+
+def star_screen_x(star_x: float, camera_x: float, world_width: float) -> float:
+    """Parallax x of a star, unchanged when camera_x wraps by world_width."""
+    return (star_x - camera_x * STAR_PARALLAX) % star_field_width(world_width)
 
 
 @dataclass
@@ -62,13 +73,18 @@ class LunarLanderApp:
         self._regenerate_stars(STAGES[0])
 
     def _regenerate_stars(self, stage: StageConfig) -> None:
+        # star_count는 화면 한 폭당 개수. 더 넓은 별 띠에도 같은 밀도로 뿌린다.
+        field_width = star_field_width(stage.world_width_px)
+        count = round(
+            stage.star_count * field_width / self.settings.screen_width
+        )
         self.stars = [
             (
-                self.effect_rng.randrange(self.settings.screen_width),
+                self.effect_rng.randrange(int(field_width)),
                 self.effect_rng.randrange(int(self.settings.screen_height * 0.65)),
                 self.effect_rng.choice((1, 1, 1, 2)),
             )
-            for _ in range(stage.star_count)
+            for _ in range(count)
         ]
         self.star_stage = stage
 
@@ -228,6 +244,12 @@ class LunarLanderApp:
         self.previous_state = self.session.state
 
     def _update_particles(self, dt: float) -> None:
+        terrain = self.session.terrain
+        world_width = (
+            float(terrain.width)
+            if terrain is not None
+            else self.settings.world_width
+        )
         alive: list[Particle] = []
         for particle in self.particles:
             particle.life -= dt
@@ -235,7 +257,7 @@ class LunarLanderApp:
                 continue
             particle.x = (
                 particle.x + particle.velocity_x * dt
-            ) % self.settings.world_width
+            ) % world_width
             particle.y += particle.velocity_y * dt
             particle.velocity_y += 20.0 * dt
             alive.append(particle)
@@ -259,7 +281,7 @@ class LunarLanderApp:
 
         self.screen.fill(background_stage.sky)
         camera_x = 0.0 if menu_screen else self.camera_x
-        self._draw_stars(background_stage.star_color, camera_x)
+        self._draw_stars(background_stage, camera_x)
         if not menu_screen and background_stage.star_count == 0:
             self._draw_haze()
         if self.session.state == GameState.TITLE:
@@ -272,12 +294,15 @@ class LunarLanderApp:
             self._draw_overlay()
         pygame.display.flip()
 
-    def _draw_stars(
-        self, color: tuple[int, int, int], camera_x: float = 0.0
-    ) -> None:
+    def _draw_stars(self, stage: StageConfig, camera_x: float = 0.0) -> None:
+        field_width = star_field_width(stage.world_width_px)
         for x, y, radius in self.stars:
-            screen_x = (x - camera_x * 0.3) % self.settings.screen_width
-            pygame.draw.circle(self.screen, color, (screen_x, y), radius)
+            screen_x = star_screen_x(x, camera_x, stage.world_width_px)
+            while screen_x <= self.settings.screen_width:
+                pygame.draw.circle(
+                    self.screen, stage.star_color, (screen_x, y), radius
+                )
+                screen_x += field_width
 
     def _draw_haze(self) -> None:
         for y in (90, 180, 270):
