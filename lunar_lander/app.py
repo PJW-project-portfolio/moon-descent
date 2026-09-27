@@ -38,6 +38,18 @@ def star_screen_x(star_x: float, camera_x: float, world_width: float) -> float:
     return (star_x - camera_x * STAR_PARALLAX) % star_field_width(world_width)
 
 
+def sky_color_at(stage: StageConfig, y: float, height: float) -> tuple[int, int, int]:
+    """Sky color of screen row y: flat sky, or zenith→horizon gradient."""
+    if stage.sky_horizon is None:
+        return stage.sky
+    t = min(1.0, max(0.0, y / max(1.0, height - 1.0)))
+    t *= t  # 먼지 하늘은 지평선 가까이에서 밝아진다. 위쪽 HUD 대비도 지킨다.
+    return tuple(
+        round(top + (bottom - top) * t)
+        for top, bottom in zip(stage.sky, stage.sky_horizon)
+    )
+
+
 @dataclass
 class Particle:
     x: float
@@ -70,6 +82,7 @@ class LunarLanderApp:
         self.previous_state = self.session.state
         self.star_stage: StageConfig | None = None
         self.stars: list[tuple[int, int, int]] = []
+        self.sky_surface: pygame.Surface | None = None
         self._regenerate_stars(STAGES[0])
 
     def _regenerate_stars(self, stage: StageConfig) -> None:
@@ -86,7 +99,20 @@ class LunarLanderApp:
             )
             for _ in range(count)
         ]
+        self.sky_surface = self._build_sky_surface(stage)
         self.star_stage = stage
+
+    def _build_sky_surface(self, stage: StageConfig) -> pygame.Surface | None:
+        # 그라데이션 하늘은 스테이지가 바뀔 때 한 번만 그려 두고 매 프레임 복사한다.
+        if stage.sky_horizon is None:
+            return None
+        width, height = self.settings.screen_width, self.settings.screen_height
+        surface = pygame.Surface((width, height))
+        for y in range(height):
+            pygame.draw.line(
+                surface, sky_color_at(stage, y, height), (0, y), (width - 1, y)
+            )
+        return surface
 
     def run(self) -> None:
         asyncio.run(self.run_async())
@@ -279,11 +305,14 @@ class LunarLanderApp:
         if self.star_stage != background_stage:
             self._regenerate_stars(background_stage)
 
-        self.screen.fill(background_stage.sky)
+        if self.sky_surface is not None:
+            self.screen.blit(self.sky_surface, (0, 0))
+        else:
+            self.screen.fill(background_stage.sky)
         camera_x = 0.0 if menu_screen else self.camera_x
         self._draw_stars(background_stage, camera_x)
-        if not menu_screen and background_stage.star_count == 0:
-            self._draw_haze()
+        if not menu_screen and background_stage.haze_color is not None:
+            self._draw_haze(background_stage.haze_color)
         if self.session.state == GameState.TITLE:
             self._draw_title()
         elif self.session.state == GameState.LEADERBOARD:
@@ -304,11 +333,11 @@ class LunarLanderApp:
                 )
                 screen_x += field_width
 
-    def _draw_haze(self) -> None:
+    def _draw_haze(self, color: tuple[int, int, int]) -> None:
         for y in (90, 180, 270):
             pygame.draw.rect(
                 self.screen,
-                (30, 23, 9),
+                color,
                 (0, y, self.settings.screen_width, 26),
             )
 
@@ -550,6 +579,10 @@ class LunarLanderApp:
 
         warning_color = RED if lander.fuel < 20.0 else AMBER
         bar_x, bar_y, bar_width, bar_height = 28, 130, 210, 9
+        # 밝은 낮 하늘(화성)에서도 빈 칸이 보이도록 레이더 바처럼 어두운 바탕을 깐다.
+        pygame.draw.rect(
+            self.screen, (0, 8, 6), (bar_x, bar_y, bar_width, bar_height)
+        )
         pygame.draw.rect(
             self.screen, DIM, (bar_x, bar_y, bar_width, bar_height), 1
         )
