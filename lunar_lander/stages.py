@@ -11,11 +11,13 @@ class StageConfig:
     fuel_burn_per_second: float  # 스테이지별 연료 소모율 (밸런스 튜닝값)
     par_time_seconds: float      # 시간 보너스 기준 기록
     world_width_px: int          # 래핑 맵 한 바퀴 폭 (스테이지마다 400px씩 축소)
-    sky: tuple[int, int, int]
+    sky: tuple[int, int, int]    # 하늘색. sky_horizon이 있으면 화면 맨 위(천정) 색
     terrain_color: tuple[int, int, int]
     ground_fill: tuple[int, int, int]
     star_color: tuple[int, int, int]
-    star_count: int
+    star_count: int              # 화면 한 폭당 별 개수. 낮 하늘·두꺼운 대기는 0
+    sky_horizon: tuple[int, int, int] | None = None  # 지정 시 위→아래 그라데이션
+    haze_color: tuple[int, int, int] | None = None   # 지정 시 구름층 띠를 그린다
 
 
 STAGES = (
@@ -39,11 +41,14 @@ STAGES = (
         9.0,
         50.0,
         6000,
-        (14, 6, 4),
+        # 낮의 화성: 먼지가 산란한 버터스카치색 하늘이라 별이 보이지 않는다.
+        # HUD 글자 대비(WCAG 4.5:1)를 지키려고 실제보다 어둡게, 천정은 더 어둡게 잡았다.
+        (104, 72, 49),
         (255, 138, 84),
         (32, 11, 6),
-        (110, 80, 66),
-        70,
+        (0, 0, 0),
+        0,
+        sky_horizon=(166, 118, 80),
     ),
     StageConfig(
         "VENUS",
@@ -57,5 +62,6 @@ STAGES = (
         (36, 27, 9),
         (0, 0, 0),
         0,
+        haze_color=(30, 23, 9),
     ),
 )

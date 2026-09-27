@@ -33,6 +33,22 @@ class StageDefinitionTests(unittest.TestCase):
         self.assertEqual(STAGES[-1].name, "VENUS")
         self.assertEqual(STAGES[-1].star_count, 0)
 
+    def test_only_the_airless_moon_shows_stars(self) -> None:
+        moon, mars, venus = STAGES
+        self.assertGreater(moon.star_count, 0)
+        # 화성은 낮 하늘(먼지 산란), 금성은 두꺼운 구름층이라 별이 보이지 않는다.
+        self.assertEqual(mars.star_count, 0)
+        self.assertEqual(venus.star_count, 0)
+
+    def test_sky_effects_are_configured_per_stage(self) -> None:
+        moon, mars, venus = STAGES
+        self.assertIsNone(moon.sky_horizon)
+        self.assertIsNone(moon.haze_color)
+        self.assertIsNotNone(mars.sky_horizon)
+        self.assertIsNone(mars.haze_color)
+        self.assertIsNone(venus.sky_horizon)
+        self.assertIsNotNone(venus.haze_color)
+
 
 if __name__ == "__main__":
     unittest.main()
