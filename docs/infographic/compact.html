@@ -72,10 +72,10 @@
       <!-- 비행 계기: H-S·V-S 두 줄을 묶는 괄호 -->
       <path d="M1099,52 L1094,52 L1094,96 L1099,96"/>
       <path d="M1074,104 L1090,78" marker-end="url(#lead)"/>
-      <!-- 패드 위치 안내: 레이더 · 왼쪽 안내 · 오른쪽 안내 -->
-      <path d="M700,186 L700,40" marker-end="url(#lead)"/>
-      <path d="M500,260 L80,260 L80,222" marker-end="url(#lead)"/>
-      <path d="M900,228 L1204,228 L1204,199" marker-end="url(#lead)"/>
+      <!-- 패드 위치 안내 (좌하단): 왼쪽 화면 밖 안내 · 레이더.
+           레이더로 가는 선은 착륙선 왼쪽(x=560)으로 올라가 기체와 벡터를 피한다. -->
+      <path d="M80,476 L80,222" marker-end="url(#lead)"/>
+      <path d="M428,500 L560,500 L560,40" marker-end="url(#lead)"/>
       <!-- 착륙 패드 -->
       <path d="M900,470 L852,598" marker-end="url(#lead)"/>
     </g>
@@ -95,8 +95,8 @@
     <circle cx="640" cy="440" r="3.6" fill="#e6f5ec" stroke="#04080a" stroke-width="1.5"/>
 
     <!-- 벡터 라벨 -->
-    <text class="vlabel" x="606" y="319" text-anchor="end" fill="#ffc15c" font-size="17" font-weight="700">추력</text>
-    <text class="vlabel" x="606" y="340" text-anchor="end" fill="#e6f5ec" font-size="15" font-weight="500">착륙 시 수직과 <tspan fill="#ffc15c" font-weight="700">12°</tspan> 이내</text>
+    <text class="vlabel" x="630" y="296" fill="#ffc15c" font-size="17" font-weight="700">추력</text>
+    <text class="vlabel" x="630" y="317" fill="#e6f5ec" font-size="15" font-weight="500">착륙 시 수직과 <tspan fill="#ffc15c" font-weight="700">12°</tspan> 이내</text>
     <text class="vlabel" x="652" y="524" fill="#6fd3ff" font-size="17" font-weight="700">중력</text>
     <text class="vlabel" x="752" y="446" fill="#e6f5ec" font-size="17" font-weight="700">진입 속도</text>
   </svg>
@@ -114,7 +114,7 @@
     수직방향(<span class="m">V-S</span>) 하강 중 <em>4.5 m/s</em> 이내일 때만<br>
     착륙으로 인정
   </div>
-  <div class="box" style="left:500px;top:186px;width:400px">
+  <div class="box" style="left:28px;top:476px;width:400px">
     <div class="t">패드 위치 안내</div>
     상단 막대: 맵 전체의 패드(숫자 = 배율)와 내 위치(흰 눈금)<br>
     화면 가장자리: 화면 밖 패드의 방향 · 배율 · 거리
