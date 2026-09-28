@@ -1,14 +1,15 @@
-"""Regenerate the README play-guide infographic.
+"""Regenerate the play-guide infographics.
 
 1. 실제 게임 화면을 헤드리스로 그려 docs/infographic/shots/에 저장한다.
-2. docs/infographic/index.html을 Chromium으로 열어 2배 해상도의
-   docs/infographic/play-guide.png로 내보낸다. Playwright가 없으면
-   1단계만 하고 설치 방법을 출력한다.
+2. docs/infographic/의 HTML 두 장을 Chromium으로 열어 2배 해상도 PNG로 내보낸다.
+     index.html   → play-guide.png          (README용 세로형 전체 가이드)
+     compact.html → play-guide-compact.png  (게임 화면 한 장 위 설명 레이어)
+   Playwright가 없으면 1단계만 하고 설치 방법을 출력한다.
        python -m pip install playwright
        python -m playwright install chromium
 
-index.html의 숫자는 settings.py · stages.py 값을 옮겨 적은 것이므로 그 값을
-바꾸면 index.html의 문구도 함께 고친다.
+HTML의 숫자는 settings.py · stages.py 값을 옮겨 적은 것이므로 그 값을
+바꾸면 HTML 문구도 함께 고친다.
 """
 
 import os
@@ -33,7 +34,11 @@ from lunar_lander.terrain import LandingPad  # noqa: E402
 
 GUIDE_DIR = PROJECT_ROOT / "docs" / "infographic"
 SHOTS_DIR = GUIDE_DIR / "shots"
-PAGE_WIDTH = 1200
+# (원본 HTML, 출력 PNG, 뷰포트 너비, 뷰포트 높이)
+PAGES = (
+    ("index.html", "play-guide.png", 1200, 800),
+    ("compact.html", "play-guide-compact.png", 1280, 720),
+)
 
 
 def pad_with_multiplier(app: LunarLanderApp, multiplier: int) -> LandingPad:
@@ -143,7 +148,7 @@ def capture_shots() -> None:
     pygame.quit()
 
 
-def render_page() -> None:
+def render_pages() -> None:
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
@@ -155,26 +160,28 @@ def render_page() -> None:
         return
 
     proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
-    output_path = GUIDE_DIR / "play-guide.png"
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(
             proxy={"server": proxy} if proxy else None
         )
-        page = browser.new_page(
-            viewport={"width": PAGE_WIDTH, "height": 800},
-            device_scale_factor=2,
-        )
-        page.goto((GUIDE_DIR / "index.html").as_uri(), wait_until="networkidle")
-        page.evaluate("document.fonts.ready")
-        page.screenshot(path=str(output_path), full_page=True)
+        for source, output, width, height in PAGES:
+            page = browser.new_page(
+                viewport={"width": width, "height": height},
+                device_scale_factor=2,
+            )
+            page.goto((GUIDE_DIR / source).as_uri(), wait_until="networkidle")
+            page.evaluate("document.fonts.ready")
+            output_path = GUIDE_DIR / output
+            page.screenshot(path=str(output_path), full_page=True)
+            page.close()
+            print(f"Saved {output_path.relative_to(PROJECT_ROOT)}")
         browser.close()
-    print(f"Saved {output_path.relative_to(PROJECT_ROOT)}")
 
 
 def main() -> None:
     os.chdir(PROJECT_ROOT)
     capture_shots()
-    render_page()
+    render_pages()
 
 
 if __name__ == "__main__":
