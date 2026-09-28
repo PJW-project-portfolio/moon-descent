@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Moon Descent Guide</title>
+<!--
+  README 플레이 가이드 인포그래픽의 원본 레이아웃.
+  PNG 갱신: python scripts/make_infographic.py
+  (shots/의 게임 화면을 다시 찍고, 이 페이지를 play-guide.png로 내보낸다.)
+  숫자는 lunar_lander/settings.py · stages.py 값을 옮겨 적은 것이므로,
+  그 값이 바뀌면 이 파일의 문구도 함께 고친다.
+-->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=block">
+<style>
+  @font-face { font-family: "Game Mono"; font-weight: 400; src: url(../../lunar_lander/assets/fonts/DejaVuSansMono.ttf); }
+  @font-face { font-family: "Game Mono"; font-weight: 700; src: url(../../lunar_lander/assets/fonts/DejaVuSansMono-Bold.ttf); }
+
+  :root {
+    --bg: #04080a;
+    --panel: #0a1512;
+    --panel-2: #0e1d18;
+    --line: #1f3d31;
+    --line-strong: #2f5a47;
+    --phos: #b4ffca;
+    --amber: #ffc15c;
+    --red: #ff6b6b;
+    --white: #e6f5ec;
+    --text: #cfe3d8;
+    --dim: #8fae9e;
+    --muted: #5d7f6e;
+    --mono: "Game Mono", monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); }
+  body {
+    width: 1200px;
+    font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--text);
+    font-size: 17px;
+    line-height: 1.5;
+    word-break: keep-all;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    position: relative;
+    padding: 44px 32px 30px;
+    background:
+      radial-gradient(1px 1px at 8% 12%, #4a6e5c 50%, transparent 51%),
+      radial-gradient(1px 1px at 22% 4%, #4a6e5c 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 37% 9%, #4a6e5c 50%, transparent 51%),
+      radial-gradient(1px 1px at 55% 3%, #4a6e5c 50%, transparent 51%),
+      radial-gradient(1px 1px at 68% 11%, #4a6e5c 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 81% 5%, #4a6e5c 50%, transparent 51%),
+      radial-gradient(1px 1px at 93% 13%, #4a6e5c 50%, transparent 51%),
+      var(--bg);
+    background-size: 100% 260px, 100% 260px, 100% 260px, 100% 260px, 100% 260px, 100% 260px, 100% 260px, auto;
+    background-repeat: no-repeat;
+  }
+  .mono { font-family: var(--mono); }
+  b, strong { color: var(--white); font-weight: 700; }
+  .amber { color: var(--amber) !important; }
+  .phos { color: var(--phos) !important; }
+  .red { color: var(--red) !important; }
+  .dimtxt { color: var(--dim); }
+
+  /* ---------- header ---------- */
+  header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding-bottom: 26px; border-bottom: 1px solid var(--line); }
+  .brand .kicker { font-family: var(--mono); color: var(--amber); letter-spacing: .28em; font-size: 15px; }
+  .brand h1 { font-family: var(--mono); font-weight: 700; color: var(--phos); font-size: 62px; line-height: 1.05; letter-spacing: .04em; margin-top: 6px; text-shadow: 0 0 18px rgba(180,255,202,.25); }
+  .brand p { margin-top: 12px; font-size: 19px; color: var(--text); }
+  .brand p b { color: var(--white); }
+  .chips { display: grid; grid-template-columns: repeat(3, auto); gap: 10px; }
+  .chip { border: 1px solid var(--line-strong); background: var(--panel); border-radius: 10px; padding: 10px 14px; text-align: center; min-width: 112px; }
+  .chip .v { font-family: var(--mono); font-weight: 700; color: var(--phos); font-size: 26px; line-height: 1.1; }
+  .chip .k { font-size: 13.5px; color: var(--dim); margin-top: 4px; }
+
+  /* ---------- sections ---------- */
+  section { margin-top: 34px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 16px; }
+  .sec-head .num { font-family: var(--mono); font-weight: 700; font-size: 16px; color: var(--bg); background: var(--amber); padding: 2px 9px; border-radius: 6px; transform: translateY(-3px); }
+  .sec-head h2 { font-size: 30px; font-weight: 900; color: var(--white); letter-spacing: -.01em; }
+  .sec-head .en { font-family: var(--mono); font-size: 14px; letter-spacing: .22em; color: var(--muted); }
+  .sec-head .rule { flex: 1; height: 1px; background: var(--line); align-self: center; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+
+  /* ---------- 01 controls ---------- */
+  .controls { display: grid; grid-template-columns: 1fr 410px; gap: 18px; }
+  .keys { padding: 22px 24px; }
+  .group-label { font-size: 14px; font-weight: 700; letter-spacing: .08em; color: var(--dim); margin-bottom: 12px; }
+  .flight-keys { display: grid; gap: 14px; margin-bottom: 22px; }
+  .krow { display: grid; grid-template-columns: 196px 1fr; align-items: center; gap: 16px; }
+  .kset { display: flex; align-items: center; gap: 7px; }
+  .kset .or { font-size: 14px; color: var(--muted); }
+  kbd {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 50px; height: 46px; padding: 0 12px;
+    font-family: var(--mono); font-weight: 700; font-size: 20px; color: var(--white);
+    background: linear-gradient(#1a2c25, #12211c);
+    border: 1px solid #3a6452; border-bottom-width: 4px; border-radius: 9px;
+  }
+  kbd.wide { min-width: 104px; font-size: 17px; }
+  kbd.sm { min-width: 42px; height: 38px; font-size: 16px; padding: 0 9px; border-bottom-width: 3px; }
+  kbd.sm.wide { min-width: 76px; font-size: 14.5px; }
+  kbd.hot { color: var(--amber); border-color: #8a6a33; background: linear-gradient(#2d2413, #211a0e); }
+  .kdesc .t { font-size: 20px; font-weight: 700; color: var(--white); }
+  .kdesc .s { font-size: 15px; color: var(--dim); }
+  .menu-keys { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; padding-top: 18px; border-top: 1px dashed var(--line); }
+  .mk { display: grid; grid-template-columns: 82px 1fr; align-items: center; gap: 10px; font-size: 15px; }
+  .mk span b { font-weight: 700; }
+
+  .physics { padding: 16px 18px 18px; display: flex; flex-direction: column; }
+  .physics .ttl { font-size: 18px; font-weight: 700; color: var(--white); }
+  .physics svg { display: block; margin: 4px auto 0; }
+  .physics .cap { font-size: 15px; color: var(--text); margin-top: 6px; }
+  .physics .cap b { color: var(--amber); }
+  .physics .tip { margin-top: auto; display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; font-size: 14px; color: var(--dim); background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px; }
+  .physics .tip .tag { font-family: var(--mono); font-weight: 700; font-size: 12.5px; color: var(--bg); background: var(--phos); border-radius: 5px; padding: 1px 6px; margin-top: 2px; }
+
+  /* ---------- 02 interface ---------- */
+  .shot { position: relative; width: 1136px; height: 639px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line-strong); }
+  .shot img { display: block; width: 100%; height: 100%; }
+  .hl { position: absolute; border: 2px dashed rgba(255,193,92,.9); border-radius: 6px; }
+  .badge {
+    position: absolute; width: 30px; height: 30px; border-radius: 50%;
+    background: var(--amber); color: #1a1204; font-family: var(--mono); font-weight: 700; font-size: 17px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 3px var(--bg);
+  }
+  .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .li { display: grid; grid-template-columns: 30px 1fr; gap: 12px; padding: 13px 16px; }
+  .li .badge { position: static; box-shadow: none; }
+  .li .t { font-size: 17.5px; font-weight: 700; color: var(--white); line-height: 1.35; }
+  .li .t .mono { font-size: 14.5px; color: var(--amber); font-weight: 400; margin-left: 6px; }
+  .li .d { font-size: 15px; color: var(--dim); margin-top: 3px; }
+  .li .d b { color: var(--text); }
+  .li.wide { grid-column: 1 / -1; }
+  .gauges { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 8px; }
+  .gauge { background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; }
+  .gauge .g { font-family: var(--mono); font-weight: 700; color: var(--phos); font-size: 16px; }
+  .gauge .gd { font-size: 14px; color: var(--dim); line-height: 1.4; }
+  .gauge .gd b { color: var(--white); }
+
+  .stages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
+  .stage { overflow: hidden; }
+  .stage img { display: block; width: 100%; aspect-ratio: 16 / 9; border-bottom: 1px solid var(--line); }
+  .stage .body { padding: 10px 14px 12px; }
+  .stage .name { display: flex; justify-content: space-between; align-items: baseline; }
+  .stage .name .n { font-family: var(--mono); font-weight: 700; font-size: 20px; color: var(--phos); }
+  .stage .name .g { font-family: var(--mono); font-size: 15px; color: var(--amber); }
+  .stage dl { display: grid; grid-template-columns: auto 1fr; gap: 1px 12px; font-size: 14.5px; margin-top: 6px; }
+  .stage dt { color: var(--dim); }
+  .stage dd { color: var(--white); text-align: right; font-family: var(--mono); font-size: 14px; }
+
+  /* ---------- 03 landing ---------- */
+  .landing { display: grid; grid-template-columns: 520px 1fr; gap: 16px; }
+  .landing .fig { padding: 10px 12px 6px; }
+  .checks { display: grid; gap: 10px; }
+  .check { display: grid; grid-template-columns: 50px 1fr auto; align-items: center; gap: 14px; padding: 13px 18px; }
+  .check .ic { width: 50px; height: 50px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line-strong); display: flex; align-items: center; justify-content: center; }
+  .check .t { font-size: 18px; font-weight: 700; color: var(--white); }
+  .check .d { font-size: 14.5px; color: var(--dim); }
+  .check .val { font-family: var(--mono); font-weight: 700; font-size: 22px; color: var(--phos); text-align: right; white-space: nowrap; }
+  .check .val small { display: block; font-size: 12.5px; color: var(--muted); font-weight: 400; }
+  .outcomes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 14px; }
+  .oc { padding: 16px 18px; border-top-width: 4px; }
+  .oc.ok { border-top-color: var(--phos); }
+  .oc.em { border-top-color: var(--amber); }
+  .oc.bad { border-top-color: var(--red); }
+  .oc .h { display: flex; align-items: baseline; gap: 10px; }
+  .oc .h .t { font-size: 19px; font-weight: 900; }
+  .oc.ok .t { color: var(--phos); } .oc.em .t { color: var(--amber); } .oc.bad .t { color: var(--red); }
+  .oc .h .m { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+  .oc p { font-size: 15px; margin-top: 6px; color: var(--text); }
+  .oc ul { list-style: none; margin-top: 6px; font-size: 14.5px; color: var(--dim); }
+  .oc li { padding-left: 14px; position: relative; margin-top: 2px; }
+  .oc li::before { content: "·"; position: absolute; left: 3px; color: var(--muted); }
+
+  /* ---------- 04 score ---------- */
+  .formula { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 20px 24px; background: linear-gradient(90deg, #0d1d17, #10231c 50%, #0d1d17); border: 1px solid var(--line-strong); border-radius: 14px; }
+  .formula .term { text-align: center; }
+  .formula .term .v { font-size: 27px; font-weight: 900; color: var(--white); line-height: 1.2; }
+  .formula .term .r { font-family: var(--mono); font-size: 14.5px; color: var(--dim); }
+  .formula .op { font-family: var(--mono); font-size: 30px; color: var(--muted); font-weight: 700; }
+  .formula .term.res .v { color: var(--amber); }
+  .factors { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px; }
+  .factor { padding: 16px 18px 14px; display: flex; flex-direction: column; }
+  .factor .h { display: flex; justify-content: space-between; align-items: baseline; }
+  .factor .h .t { font-size: 19px; font-weight: 900; color: var(--white); }
+  .factor .h .rg { font-family: var(--mono); font-weight: 700; color: var(--amber); font-size: 17px; }
+  .factor .eq { font-family: var(--mono); font-size: 14.5px; color: var(--phos); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; margin-top: 9px; }
+  .factor .eq .dimtxt { color: var(--dim); }
+  .factor p { font-size: 14.5px; color: var(--dim); margin-top: 9px; }
+  .factor p b { color: var(--text); }
+  .factor svg { display: block; margin-top: 10px; }
+
+  .bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  .example { padding: 16px 18px; }
+  .example .t, .prog .t { font-size: 19px; font-weight: 900; color: var(--white); }
+  .example .t .dimtxt, .prog .t .dimtxt { font-size: 14px; font-weight: 400; margin-left: 6px; }
+  .crop { margin-top: 10px; width: 100%; height: 132px; border-radius: 10px; border: 1px solid var(--line-strong); background-image: url(shots/clear.png); background-size: 1280px 720px; background-position: -378px -226px; }
+  .steps { margin-top: 10px; display: grid; gap: 6px; }
+  .step { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: baseline; font-size: 15.5px; }
+  .step .i { font-family: var(--mono); color: var(--muted); font-size: 14px; }
+  .step .r { font-family: var(--mono); font-weight: 700; color: var(--white); }
+  .step.total { border-top: 1px dashed var(--line-strong); padding-top: 8px; margin-top: 2px; }
+  .step.total .r { color: var(--amber); font-size: 22px; }
+  .prog { padding: 16px 18px; }
+  .prog .rows { display: grid; gap: 10px; margin-top: 10px; }
+  .prow { display: grid; grid-template-columns: 112px 1fr; gap: 12px; font-size: 15px; align-items: start; }
+  .prow .k { font-weight: 700; color: var(--phos); font-size: 14.5px; padding-top: 1px; }
+  .prow .v { color: var(--text); }
+  .prow .v .dimtxt { font-size: 14px; }
+  kbd.xs { min-width: 0; height: 24px; padding: 0 7px; font-size: 13px; border-bottom-width: 2px; border-radius: 6px; vertical-align: 1px; }
+
+  footer { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; font-size: 13.5px; color: var(--muted); }
+  footer .mono { font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <!-- 게임과 같은 착륙선 형상 (lunar_lander/app.py _draw_lander) -->
+      <g id="lander" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="-10,-10 10,-10 13,8 -13,8" stroke="#e6f5ec" vector-effect="non-scaling-stroke"/>
+        <polygon points="-5,-7 5,-7 6,0 -6,0" stroke="#b4ffca" vector-effect="non-scaling-stroke"/>
+        <line x1="-9" y1="7" x2="-16" y2="18" stroke="#e6f5ec" vector-effect="non-scaling-stroke"/>
+        <line x1="9" y1="7" x2="16" y2="18" stroke="#e6f5ec" vector-effect="non-scaling-stroke"/>
+        <line x1="-20" y1="18" x2="-12" y2="18" stroke="#e6f5ec" vector-effect="non-scaling-stroke"/>
+        <line x1="12" y1="18" x2="20" y2="18" stroke="#e6f5ec" vector-effect="non-scaling-stroke"/>
+      </g>
+      <marker id="ah-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ffc15c"/></marker>
+      <marker id="ah-white" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e6f5ec"/></marker>
+      <marker id="ah-dim" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8fae9e"/></marker>
+      <marker id="ah-phos" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b4ffca"/></marker>
+    </defs>
+  </svg>
+
+  <header>
+    <div class="brand">
+      <div class="kicker">PLAY GUIDE · 2D VECTOR LANDER</div>
+      <h1>MOON DESCENT</h1>
+      <p>제한된 연료로 <b>달 → 화성 → 금성</b>의 착륙 패드에 내려앉아 점수를 모으는 게임</p>
+    </div>
+    <div class="chips">
+      <div class="chip"><div class="v">3</div><div class="k">스테이지(천체)</div></div>
+      <div class="chip"><div class="v">3</div><div class="k">목숨 · 게임 전체</div></div>
+      <div class="chip"><div class="v">100</div><div class="k">시작 연료</div></div>
+    </div>
+  </header>
+
+  <!-- ================= 01 CONTROLS ================= -->
+  <section>
+    <div class="sec-head"><span class="num">01</span><h2>조작 방법</h2><span class="en">CONTROLS</span><span class="rule"></span></div>
+    <div class="controls">
+      <div class="card keys">
+        <div class="group-label">비행 조종 — 누르고 있는 동안 작동</div>
+        <div class="flight-keys">
+          <div class="krow">
+            <div class="kset"><kbd>←</kbd><kbd>→</kbd></div>
+            <div class="kdesc"><div class="t">기체 회전</div><div class="s">초당 90°로 왼쪽 / 오른쪽으로 기울입니다</div></div>
+          </div>
+          <div class="krow">
+            <div class="kset"><kbd class="hot">↑</kbd><span class="or">또는</span><kbd class="hot wide">Space</kbd></div>
+            <div class="kdesc"><div class="t">주 추력기 분사</div><div class="s">기체가 향한 방향으로 11 m/s² 가속 · 연료를 소모합니다</div></div>
+          </div>
+        </div>
+        <div class="group-label">게임 진행</div>
+        <div class="menu-keys">
+          <div class="mk"><kbd class="sm wide">Enter</kbd><span><b>시작</b> · 다음 스테이지 · 확인</span></div>
+          <div class="mk"><kbd class="sm">P</kbd><span><b>일시정지</b> / 계속</span></div>
+          <div class="mk"><kbd class="sm">L</kbd><span><b>리더보드</b> · 기록 후 종료</span></div>
+          <div class="mk"><kbd class="sm">R</kbd><span><b>새 게임</b> (처음부터 다시)</span></div>
+          <div class="mk"><kbd class="sm wide">Esc</kbd><span><b>종료</b> · 리더보드에서는 타이틀로</span></div>
+          <div class="mk"><kbd class="sm wide">Space</kbd><span>타이틀에서 <b>시작</b>도 가능</span></div>
+        </div>
+      </div>
+
+      <div class="card physics">
+        <div class="ttl">추력은 기체가 <span class="amber">기울어진 방향</span>으로</div>
+        <svg width="394" height="218" viewBox="0 0 394 218">
+          <path d="M0,200 L70,192 L120,198 L170,188 L230,196 L290,190 L394,198" fill="none" stroke="#2f5a47" stroke-width="2"/>
+          <!-- entry velocity -->
+          <line x1="236" y1="100" x2="330" y2="100" stroke="#e6f5ec" stroke-width="2.5" stroke-dasharray="7 5" marker-end="url(#ah-white)"/>
+          <text x="238" y="86" fill="#e6f5ec" font-size="14" font-family="Noto Sans KR" font-weight="700">진입 속도</text>
+          <text x="244" y="122" fill="#8fae9e" font-size="13" font-family="Game Mono">5 · 7 · 8 m/s</text>
+          <!-- gravity -->
+          <line x1="70" y1="112" x2="70" y2="166" stroke="#8fae9e" stroke-width="2.5" marker-end="url(#ah-dim)"/>
+          <text x="80" y="150" fill="#8fae9e" font-size="14" font-family="Noto Sans KR" font-weight="700">중력</text>
+          <!-- attitude reference -->
+          <line x1="172" y1="28" x2="172" y2="64" stroke="#5d7f6e" stroke-width="1.5" stroke-dasharray="3 4"/>
+          <path d="M172,50 A54,54 0 0 0 153.5,53.3" fill="none" stroke="#b4ffca" stroke-width="1.8"/>
+          <!-- lander tilted -20deg: thrust along its up axis -->
+          <g transform="translate(172,104) rotate(-20)">
+            <line x1="0" y1="-38" x2="0" y2="-88" stroke="#ffc15c" stroke-width="3" marker-end="url(#ah-amber)"/>
+            <g transform="scale(2.1)"><use href="#lander" stroke-width="3"/></g>
+            <circle cx="-2" cy="44" r="2.4" fill="#ffc15c"/><circle cx="2" cy="52" r="2" fill="#e6f5ec"/>
+            <circle cx="-1" cy="60" r="1.8" fill="#ffc15c"/><circle cx="3" cy="66" r="1.4" fill="#ffc15c"/>
+          </g>
+          <text x="130" y="30" text-anchor="end" fill="#ffc15c" font-size="14" font-family="Noto Sans KR" font-weight="700">추력</text>
+        </svg>
+        <div class="cap">착륙선은 오른쪽으로 흐르며 출발합니다. <b>←로 기울여 분사</b>하면 수평 속도가 줄고, 착지 직전에는 다시 <b>수직</b>으로 세웁니다.</div>
+        <div class="tip"><span class="tag">TIP</span><span>금성은 중력 8.87 m/s²가 추력 11 m/s²에 가까워, 똑바로 분사해도 감속이 약 2.1 m/s²뿐입니다. 높이 여유를 두고 일찍 분사하세요.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 02 INTERFACE ================= -->
+  <section>
+    <div class="sec-head"><span class="num">02</span><h2>인터페이스</h2><span class="en">HUD · SCREEN</span><span class="rule"></span></div>
+
+    <div class="shot">
+      <img src="shots/hud.png" alt="">
+      <!-- boxes: coordinates in the 1280x720 game frame, converted to % -->
+      <div class="hl" style="left:1.56%;top:2.2%;width:14.06%;height:14.7%"></div>
+      <div class="badge" style="left:16.1%;top:2.6%">2</div>
+      <div class="hl" style="left:1.72%;top:17.4%;width:17.3%;height:2.8%"></div>
+      <div class="badge" style="left:19.6%;top:16.4%">3</div>
+      <div class="hl" style="left:30.6%;top:2.2%;width:38.75%;height:6.1%"></div>
+      <div class="badge" style="left:69.9%;top:2.6%">4</div>
+      <div class="hl" style="left:85.2%;top:2.2%;width:13.3%;height:18.6%"></div>
+      <div class="badge" style="left:82.1%;top:2.6%">1</div>
+      <div class="hl" style="left:1.56%;top:22.8%;width:9.06%;height:8.06%"></div>
+      <div class="hl" style="left:89.4%;top:22.8%;width:9.06%;height:4.4%"></div>
+      <div class="badge" style="left:11.1%;top:23.1%">5</div>
+      <div class="badge" style="left:86.3%;top:22.6%">5</div>
+      <div class="hl" style="left:58.4%;top:83.1%;width:9.7%;height:9.7%"></div>
+      <div class="badge" style="left:68.6%;top:83.5%">6</div>
+      <div class="hl" style="left:47.97%;top:58.3%;width:4.2%;height:10%"></div>
+      <div class="badge" style="left:52.7%;top:58.3%">7</div>
+    </div>
+
+    <div class="legend">
+      <div class="card li wide"><div class="badge">1</div><div><div class="t">비행 계기 <span class="mono" style="color:var(--dim)">착륙 직전에 확인할 값 · 화면 10 px = 1 m</span></div>
+        <div class="gauges">
+          <div class="gauge"><div class="g">ALT</div><div class="gd">발 아래 지면까지 <b>고도</b> (m)</div></div>
+          <div class="gauge"><div class="g">H-S</div><div class="gd"><b>수평 속도</b> · + 오른쪽 / − 왼쪽</div></div>
+          <div class="gauge"><div class="g">V-S</div><div class="gd"><b>수직 속도</b> · <b class="amber">+ 하강</b> / − 상승</div></div>
+          <div class="gauge"><div class="g">FUEL</div><div class="gd">남은 <b>연료</b> (가득 = 100)</div></div>
+          <div class="gauge"><div class="g">GRAV</div><div class="gd">현재 천체의 <b>표면 중력</b></div></div>
+        </div>
+      </div></div>
+      <div class="card li"><div class="badge">2</div><div><div class="t">점수 패널<span class="mono">SCORE · HIGH · STAGE · LIVES</span></div><div class="d">누적 점수, 게임을 켠 뒤 최고 점수, 현재 스테이지(1/3 MOON), <b>남은 목숨</b></div></div></div>
+      <div class="card li"><div class="badge">3</div><div><div class="t">연료 바</div><div class="d">가득 = 100. <b class="red">20 미만이면 빨간색</b>. 시간 보너스로 100을 넘으면 바 오른쪽에 추가 칸이 생깁니다</div></div></div>
+      <div class="card li"><div class="badge">4</div><div><div class="t">패드 레이더</div><div class="d">맵 한 바퀴 전체를 압축한 막대. <b class="amber">주황 눈금+숫자</b> = 패드와 배율, <b>흰 눈금</b> = 내 위치</div></div></div>
+      <div class="card li"><div class="badge">5</div><div><div class="t">화면 밖 패드 안내<span class="mono">&lt; x5 77M · x3 103M &gt;</span></div><div class="d">화살표 방향 · 배율 · 거리. 가까운 패드가 위에 표시됩니다</div></div></div>
+      <div class="card li"><div class="badge">6</div><div><div class="t">착륙 패드</div><div class="d">빛나는 <b class="amber">주황 평지</b>. 아래에 배율 <b>x2~x5</b>와 거리 보너스 <b>+NN%</b></div></div></div>
+      <div class="card li"><div class="badge">7</div><div><div class="t">착륙선</div><div class="d">항상 화면 가로 중앙. 지형이 좌우로 흐르고, 맵은 양 끝이 이어진 <b>무한 래핑</b> 구조</div></div></div>
+    </div>
+
+    <div class="stages">
+      <div class="card stage"><img src="shots/stage_moon.png" alt=""><div class="body">
+        <div class="name"><span class="n">1 · MOON 달</span><span class="g">1.62 m/s²</span></div>
+        <dl><dt>진입 속도 (오른쪽)</dt><dd>5.0 m/s</dd><dt>분사 중 연료 소모</dt><dd>10 / s</dd><dt>연료 100으로 분사</dt><dd>약 10 s</dd><dt>맵 한 바퀴</dt><dd>640 m</dd><dt>기준 시간</dt><dd>45 s</dd></dl>
+      </div></div>
+      <div class="card stage"><img src="shots/stage_mars.png" alt=""><div class="body">
+        <div class="name"><span class="n">2 · MARS 화성</span><span class="g">3.71 m/s²</span></div>
+        <dl><dt>진입 속도 (오른쪽)</dt><dd>7.0 m/s</dd><dt>분사 중 연료 소모</dt><dd>9 / s</dd><dt>연료 100으로 분사</dt><dd>약 11 s</dd><dt>맵 한 바퀴</dt><dd>600 m</dd><dt>기준 시간</dt><dd>50 s</dd></dl>
+      </div></div>
+      <div class="card stage"><img src="shots/stage_venus.png" alt=""><div class="body">
+        <div class="name"><span class="n">3 · VENUS 금성</span><span class="g">8.87 m/s²</span></div>
+        <dl><dt>진입 속도 (오른쪽)</dt><dd>8.0 m/s</dd><dt>분사 중 연료 소모</dt><dd>7 / s</dd><dt>연료 100으로 분사</dt><dd>약 14 s</dd><dt>맵 한 바퀴</dt><dd>560 m</dd><dt>기준 시간</dt><dd>60 s</dd></dl>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- ================= 03 LANDING ================= -->
+  <section>
+    <div class="sec-head"><span class="num">03</span><h2>착륙 성공 조건</h2><span class="en">TOUCHDOWN CHECK</span><span class="rule"></span></div>
+    <div class="landing">
+      <div class="card fig">
+        <svg width="494" height="334" viewBox="0 0 494 334">
+          <!-- terrain + pad -->
+          <path d="M0,262 L40,248 L60,268 L78,258 L78,258" fill="none" stroke="#b4ffca" stroke-width="2"/>
+          <path d="M0,262 L40,248 L60,268 L80,258 L80,330 L0,330 z" fill="#0b1d17"/>
+          <path d="M414,258 L440,236 L470,250 L494,240 L494,330 L414,330 z" fill="#0b1d17"/>
+          <path d="M414,258 L440,236 L470,250 L494,240" fill="none" stroke="#b4ffca" stroke-width="2"/>
+          <rect x="80" y="258" width="334" height="72" fill="#0b1d17"/>
+          <line x1="80" y1="258" x2="414" y2="258" stroke="#ffc15c" stroke-width="6"/>
+          <!-- extension lines -->
+          <g stroke-dasharray="3 3" stroke-width="1.2">
+            <line x1="167" y1="262" x2="167" y2="282" stroke="#b4ffca"/><line x1="327" y1="262" x2="327" y2="282" stroke="#b4ffca"/>
+            <line x1="80" y1="262" x2="80" y2="320" stroke="#ffc15c"/><line x1="414" y1="262" x2="414" y2="320" stroke="#ffc15c"/>
+          </g>
+          <!-- foot span (lander scale 4 => 160 px = 4 m) -->
+          <line x1="167" y1="276" x2="327" y2="276" stroke="#b4ffca" stroke-width="1.5" marker-start="url(#ah-phos)" marker-end="url(#ah-phos)"/>
+          <text x="247" y="296" text-anchor="middle" fill="#b4ffca" font-size="13.5" font-family="Noto Sans KR" font-weight="700">발 간격 4 m</text>
+          <!-- pad width -->
+          <line x1="80" y1="314" x2="414" y2="314" stroke="#ffc15c" stroke-width="1.5" marker-start="url(#ah-amber)" marker-end="url(#ah-amber)"/>
+          <rect x="166" y="304" width="162" height="20" fill="#0b1d17"/>
+          <text x="247" y="319" text-anchor="middle" fill="#ffc15c" font-size="14" font-family="Noto Sans KR" font-weight="700">패드 폭 (x4 · 10.5 m)</text>
+          <!-- lander on the pad: feet (local y 18 x4) rest on the pad top -->
+          <g transform="translate(247,183) scale(4)"><use href="#lander" stroke-width="3.2"/></g>
+          <!-- attitude -->
+          <line x1="247" y1="30" x2="247" y2="130" stroke="#5d7f6e" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <line x1="247" y1="130" x2="226.2" y2="32.2" stroke="#b4ffca" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <line x1="247" y1="130" x2="267.8" y2="32.2" stroke="#b4ffca" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <path d="M231.4,56.6 A75,75 0 0 1 262.6,56.6" fill="none" stroke="#b4ffca" stroke-width="2"/>
+          <text x="247" y="22" text-anchor="middle" fill="#b4ffca" font-size="16" font-family="Game Mono" font-weight="700">±12°</text>
+          <!-- horizontal speed -->
+          <line x1="342" y1="178" x2="420" y2="178" stroke="#e6f5ec" stroke-width="2.5" marker-end="url(#ah-white)"/>
+          <line x1="152" y1="178" x2="74" y2="178" stroke="#e6f5ec" stroke-width="2.5" marker-end="url(#ah-white)"/>
+          <text x="381" y="168" text-anchor="middle" fill="#e6f5ec" font-size="15" font-family="Game Mono" font-weight="700">H-S</text>
+          <text x="381" y="200" text-anchor="middle" fill="#8fae9e" font-size="13" font-family="Game Mono">≤ 3.5</text>
+          <text x="113" y="168" text-anchor="middle" fill="#e6f5ec" font-size="15" font-family="Game Mono" font-weight="700">H-S</text>
+          <text x="113" y="200" text-anchor="middle" fill="#8fae9e" font-size="13" font-family="Game Mono">≤ 3.5</text>
+          <!-- vertical speed -->
+          <line x1="352" y1="76" x2="352" y2="134" stroke="#ffc15c" stroke-width="2.5" marker-end="url(#ah-amber)"/>
+          <text x="364" y="96" fill="#ffc15c" font-size="15" font-family="Game Mono" font-weight="700">V-S</text>
+          <text x="364" y="116" fill="#8fae9e" font-size="13" font-family="Game Mono">0 ~ 4.5</text>
+          <text x="364" y="134" fill="#8fae9e" font-size="12" font-family="Noto Sans KR">하강 중</text>
+        </svg>
+      </div>
+
+      <div class="checks">
+        <div class="card check">
+          <div class="ic"><svg width="34" height="22" viewBox="-22 8 44 14"><line x1="-20" y1="18" x2="-12" y2="18" stroke="#e6f5ec" stroke-width="2.4"/><line x1="12" y1="18" x2="20" y2="18" stroke="#e6f5ec" stroke-width="2.4"/><line x1="-9" y1="7" x2="-16" y2="18" stroke="#e6f5ec" stroke-width="2"/><line x1="9" y1="7" x2="16" y2="18" stroke="#e6f5ec" stroke-width="2"/><line x1="-22" y1="21.5" x2="22" y2="21.5" stroke="#ffc15c" stroke-width="3"/></svg></div>
+          <div><div class="t">위치 — 발 끝이 모두 패드 안</div><div class="d">양쪽 발판의 끝 4점이 모두 주황 패드 양 끝 사이에 있어야 합니다</div></div>
+          <div class="val">패드 안<small>ON PAD</small></div>
+        </div>
+        <div class="card check">
+          <div class="ic"><svg width="30" height="16" viewBox="0 0 30 16"><line x1="2" y1="8" x2="24" y2="8" stroke="#e6f5ec" stroke-width="2.4"/><path d="M20,2 L28,8 L20,14" fill="none" stroke="#e6f5ec" stroke-width="2.4"/></svg></div>
+          <div><div class="t">수평 속도 <span class="mono" style="font-size:15px;color:var(--dim)">H-S</span></div><div class="d">좌우 어느 쪽이든 절댓값 기준</div></div>
+          <div class="val">≤ 3.5 m/s<small>|H-S|</small></div>
+        </div>
+        <div class="card check">
+          <div class="ic"><svg width="16" height="30" viewBox="0 0 16 30"><line x1="8" y1="2" x2="8" y2="24" stroke="#ffc15c" stroke-width="2.4"/><path d="M2,20 L8,28 L14,20" fill="none" stroke="#ffc15c" stroke-width="2.4"/></svg></div>
+          <div><div class="t">하강 속도 <span class="mono" style="font-size:15px;color:var(--dim)">V-S</span></div><div class="d"><b>내려가는 중</b>이어야 함 — 상승하며 닿으면 추락 처리</div></div>
+          <div class="val">0 ~ 4.5 m/s<small>V-S</small></div>
+        </div>
+        <div class="card check">
+          <div class="ic"><svg width="30" height="30" viewBox="0 0 30 30"><line x1="15" y1="28" x2="15" y2="3" stroke="#5d7f6e" stroke-width="1.6" stroke-dasharray="3 3"/><line x1="15" y1="28" x2="10" y2="4" stroke="#b4ffca" stroke-width="2"/><line x1="15" y1="28" x2="20" y2="4" stroke="#b4ffca" stroke-width="2"/></svg></div>
+          <div><div class="t">자세 — 기울기</div><div class="d">수직 기준 좌우 12° 이내로 세운 채 접지</div></div>
+          <div class="val">±12°<small>ANGLE</small></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="outcomes">
+      <div class="card oc ok">
+        <div class="h"><span class="t">패드 착륙</span><span class="m">STAGE CLEAR</span></div>
+        <p>네 조건을 모두 만족하면 성공. <b>배율 × 거리 보너스</b>가 적용된 점수를 받습니다.</p>
+        <ul>
+          <li>1~2단계는 다음 천체로 계속하거나 여기서 기록 후 종료</li>
+          <li>3단계 금성 착륙 = 임무 완수 (MISSION COMPLETE)</li>
+        </ul>
+      </div>
+      <div class="card oc em">
+        <div class="h"><span class="t">비상 착륙</span><span class="m">EMERGENCY</span></div>
+        <p>패드 밖이라도 발 아래 지형 <b>고저차 0.8 m 이내</b>인 평지에 같은 속도·자세 조건으로 내리면 인정. <b>기본 점수만</b> 받습니다.</p>
+        <ul>
+          <li>스테이지 클리어로 똑같이 다음 단계에 진행</li>
+          <li>연료가 부족해 패드까지 못 갈 때의 차선책</li>
+        </ul>
+      </div>
+      <div class="card oc bad">
+        <div class="h"><span class="t">추락</span><span class="m">MODULE DESTROYED</span></div>
+        <p>조건을 하나라도 어기거나 기체가 지형에 부딪히면 <b>목숨 −1</b>, 같은 지형에서 재시도합니다.</p>
+        <ul>
+          <li>재시도 연료: 1단계는 100, 2단계부터는 그 단계 시작 연료</li>
+          <li>목숨은 스테이지가 바뀌어도 회복되지 않고, 0이 되면 임무 종료</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 04 SCORE ================= -->
+  <section>
+    <div class="sec-head"><span class="num">04</span><h2>점수 계산</h2><span class="en">SCORING</span><span class="rule"></span></div>
+
+    <div class="formula">
+      <div class="term res"><div class="v">착륙 점수</div><div class="r">반올림</div></div>
+      <div class="op">=</div>
+      <div class="term"><div class="v">기본 점수</div><div class="r">100 ~ 200</div></div>
+      <div class="op">×</div>
+      <div class="term"><div class="v">패드 배율</div><div class="r">x2 ~ x5</div></div>
+      <div class="op">×</div>
+      <div class="term"><div class="v">거리 보너스</div><div class="r">×1.0 ~ ×1.5</div></div>
+    </div>
+
+    <div class="factors">
+      <div class="card factor">
+        <div class="h"><span class="t">기본 점수</span><span class="rg">100~200</span></div>
+        <div class="eq">100 + 100 × (1 − <span class="amber">V-S</span> ÷ 4.5)</div>
+        <svg width="318" height="112" viewBox="0 0 318 112">
+          <line x1="40" y1="10" x2="40" y2="88" stroke="#1f3d31"/><line x1="40" y1="88" x2="306" y2="88" stroke="#1f3d31"/>
+          <line x1="40" y1="14" x2="296" y2="84" stroke="#b4ffca" stroke-width="2.5"/>
+          <text x="34" y="18" text-anchor="end" fill="#8fae9e" font-size="12" font-family="Game Mono">200</text>
+          <text x="34" y="88" text-anchor="end" fill="#8fae9e" font-size="12" font-family="Game Mono">100</text>
+          <text x="40" y="104" text-anchor="middle" fill="#8fae9e" font-size="12" font-family="Game Mono">0</text>
+          <text x="296" y="104" text-anchor="middle" fill="#8fae9e" font-size="12" font-family="Game Mono">4.5</text>
+          <text x="170" y="106" text-anchor="middle" fill="#5d7f6e" font-size="12" font-family="Noto Sans KR">접지 순간 하강 속도 (m/s)</text>
+          <circle cx="96.9" cy="29.6" r="4" fill="#ffc15c"/><text x="104" y="26" fill="#ffc15c" font-size="12" font-family="Game Mono">1.0 → 178</text>
+          <circle cx="210.7" cy="60.7" r="4" fill="#ffc15c"/><text x="218" y="57" fill="#ffc15c" font-size="12" font-family="Game Mono">3.0 → 133</text>
+        </svg>
+        <p>부드럽게 내릴수록 높습니다. <b>비상 착륙은 이 점수만</b> 받습니다.</p>
+      </div>
+
+      <div class="card factor">
+        <div class="h"><span class="t">패드 배율</span><span class="rg">x2~x5</span></div>
+        <div class="eq"><span class="dimtxt">시작점에서 가까운 패드부터</span> x2 → x5</div>
+        <svg width="318" height="118" viewBox="0 0 318 118">
+          <!-- widths (MOON): 17 / 13.5 / 10.5 / 7.8 m, 1 m = 11 px; lander 4 m = 44 px -->
+          <g font-family="Game Mono" font-size="13">
+            <text x="0" y="17" fill="#ffc15c" font-weight="700">x2</text><rect x="30" y="8" width="187" height="11" rx="2" fill="#ffc15c" opacity=".35"/><rect x="30" y="8" width="44" height="11" rx="2" fill="#b4ffca" opacity=".9"/><text x="226" y="18" fill="#e6f5ec">17.0 m</text>
+            <text x="0" y="43" fill="#ffc15c" font-weight="700">x3</text><rect x="30" y="34" width="148.5" height="11" rx="2" fill="#ffc15c" opacity=".5"/><rect x="30" y="34" width="44" height="11" rx="2" fill="#b4ffca" opacity=".9"/><text x="226" y="44" fill="#e6f5ec">13.5 m</text>
+            <text x="0" y="69" fill="#ffc15c" font-weight="700">x4</text><rect x="30" y="60" width="115.5" height="11" rx="2" fill="#ffc15c" opacity=".7"/><rect x="30" y="60" width="44" height="11" rx="2" fill="#b4ffca" opacity=".9"/><text x="226" y="70" fill="#e6f5ec">10.5 m</text>
+            <text x="0" y="95" fill="#ffc15c" font-weight="700">x5</text><rect x="30" y="86" width="85.8" height="11" rx="2" fill="#ffc15c" opacity=".95"/><rect x="30" y="86" width="44" height="11" rx="2" fill="#b4ffca" opacity=".9"/><text x="226" y="96" fill="#e6f5ec"> 7.8 m</text>
+          </g>
+          <text x="30" y="116" fill="#8fae9e" font-size="11.5" font-family="Noto Sans KR"><tspan fill="#b4ffca">■</tspan> 착륙선 발 간격 4 m · 달 기준 패드 폭</text>
+        </svg>
+        <p>배율이 높을수록 <b>멀고 좁습니다</b>. 스테이지마다 패드가 0.5 m씩 더 좁아집니다.</p>
+      </div>
+
+      <div class="card factor">
+        <div class="h"><span class="t">거리 보너스</span><span class="rg">최대 +50%</span></div>
+        <div class="eq">1 + 0.5 × <span class="dimtxt">거리 ÷ 맵 반 바퀴</span></div>
+        <svg width="318" height="112" viewBox="0 0 318 112">
+          <!-- distance from spawn (shorter way round) : 0 .. half map ; bonus = 1 + 0.5 x -->
+          <rect x="20" y="46" width="112" height="12" fill="#1f3d31" opacity=".9"/>
+          <line x1="20" y1="52" x2="300" y2="52" stroke="#2f5a47" stroke-width="2"/>
+          <line x1="20" y1="40" x2="20" y2="64" stroke="#e6f5ec" stroke-width="3"/>
+          <line x1="300" y1="44" x2="300" y2="60" stroke="#8fae9e" stroke-width="2"/>
+          <rect x="172" y="44" width="4" height="16" fill="#ffc15c"/>
+          <rect x="256" y="44" width="4" height="16" fill="#ffc15c"/>
+          <text x="20" y="30" fill="#e6f5ec" font-size="12" font-family="Noto Sans KR" font-weight="700">시작 지점 +0%</text>
+          <text x="300" y="30" text-anchor="end" fill="#8fae9e" font-size="12" font-family="Noto Sans KR">맵 반대편 +50%</text>
+          <text x="76" y="78" text-anchor="middle" fill="#5d7f6e" font-size="11.5" font-family="Noto Sans KR">패드 없음 (128 m)</text>
+          <text x="174" y="80" text-anchor="middle" fill="#ffc15c" font-size="12.5" font-family="Game Mono" font-weight="700">x2·x3</text>
+          <text x="174" y="96" text-anchor="middle" fill="#e6f5ec" font-size="12" font-family="Game Mono">+26~31%</text>
+          <text x="258" y="80" text-anchor="middle" fill="#ffc15c" font-size="12.5" font-family="Game Mono" font-weight="700">x4·x5</text>
+          <text x="258" y="96" text-anchor="middle" fill="#e6f5ec" font-size="12" font-family="Game Mono">+41~45%</text>
+        </svg>
+        <p>시작 지점에서 좌우 중 <b>가까운 쪽으로 잰 거리</b>가 멀수록 커집니다. 패드 아래 <b>+NN%</b>로 표시됩니다.</p>
+      </div>
+    </div>
+
+    <div class="bottom">
+      <div class="card example">
+        <div class="t">계산 예시<span class="dimtxt">실제 게임 화면 · 달 x4 패드</span></div>
+        <div class="crop"></div>
+        <div class="steps">
+          <div class="step"><span class="i">①</span><span>접지 하강 속도 1.52 m/s → 100 + 100 × (1 − 1.52 ÷ 4.5)</span><span class="r">166.3</span></div>
+          <div class="step"><span class="i">②</span><span>× 패드 배율 <b class="amber">x4</b> × 거리 보너스 <b class="amber">1.417</b> <span class="dimtxt">(화면 +41%)</span></span><span class="r">942.7</span></div>
+          <div class="step total"><span class="i">=</span><span><b>반올림 → 착륙 점수</b></span><span class="r">+943</span></div>
+        </div>
+      </div>
+
+      <div class="card prog">
+        <div class="t">누적과 진행<span class="dimtxt">총점 = 스테이지별 착륙 점수의 합</span></div>
+        <div class="rows">
+          <div class="prow"><span class="k">스테이지 클리어</span><span class="v"><kbd class="xs">Enter</kbd> 다음 천체로 계속 · <kbd class="xs">L</kbd> 여기서 점수 기록 후 종료</span></div>
+          <div class="prow"><span class="k">연료 보너스</span><span class="v">다음 스테이지 연료 = <b>100 + (기준 시간 − 착륙 시간) × 0.6</b>, 보너스는 최대 30<br><span class="dimtxt">점수가 아니라 연료로 받는 보상 · 예시: 38 s 착륙 → +4</span></span></div>
+          <div class="prow"><span class="k">추락</span><span class="v">그 판 점수 0, <b>누적 점수는 유지</b>. 목숨 3개를 모두 잃으면 임무 종료</span></div>
+          <div class="prow"><span class="k">기록</span><span class="v">임무 완수 · <kbd class="xs">L</kbd> 종료 · 목숨 소진 후 <b>영문 이니셜 2~4자 + 전화번호 뒤 4자리</b>를 입력해 리더보드(상위 10개)에 저장 <span class="dimtxt">· Esc로 건너뛰기</span></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>모든 수치는 <span class="mono">lunar_lander/settings.py · stages.py</span> 기준 · 화면 속 이미지는 실제 게임 렌더링</span>
+    <span class="mono">pjw-project-portfolio.github.io/moon-descent</span>
+  </footer>
+</div>
+</body>
+</html>
