@@ -4,6 +4,18 @@
 제한된 연료로 착륙선의 자세와 속도를 제어해 표시된 착륙 지점에 안전하게
 내려앉는 것이 목표입니다.
 
+## 한눈에 보는 플레이 가이드
+
+2D 버전의 조작 방법, 화면(HUD) 구성, 착륙 성공 조건, 점수 계산 방식을 한 장에 정리했습니다.
+이미지를 누르면 원본 크기로 볼 수 있고, 자세한 규칙은 아래 [조작법](#조작법)과
+[게임 규칙과 착륙 조건](#게임-규칙과-착륙-조건)에 있습니다.
+
+[![Moon Descent 플레이 가이드: 조작 방법, 인터페이스, 착륙 성공 조건, 점수 계산](docs/infographic/play-guide.png)](docs/infographic/play-guide.png)
+
+인포그래픽 속 게임 화면은 실제 게임을 렌더링한 것입니다. 규칙 수치를 바꾼 뒤에는
+`docs/infographic/index.html`의 문구를 고치고 `python scripts/make_infographic.py`로 다시
+만듭니다(PNG 내보내기에는 `pip install playwright`와 `python -m playwright install chromium` 필요).
+
 ## 설치와 실행 (소스 코드)
 
 Python이 없는 컴퓨터에 나눠 줄 때는 아래 "간편 실행과 배포"의 실행 파일이나 웹 링크를
