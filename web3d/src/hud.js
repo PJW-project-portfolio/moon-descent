@@ -7,7 +7,7 @@ import {
   FUEL_CAPACITY,
   STARTING_LIVES,
 } from "./constants.js";
-import { tiltDeg } from "./physics.js";
+import { tiltDeg, bodyToWorld } from "./physics.js";
 import { GameState } from "./game.js";
 
 export function createHud() {
@@ -73,12 +73,15 @@ export function createHud() {
       refs.engine.className = "indicator " + (s.mainOn ? "burn" : "off");
 
       refs.padDist.textContent = pad.dist.toFixed(0) + " m";
-      // 체이스 카메라는 -z를 바라보므로 화면 기준 방위각 = atan2(dx, -dz)
-      const bearing = Math.atan2(pad.dx, -pad.dz);
+      // 착륙선 전방(FORWARD 카메라, 기체 -Z) 기준 패드 방위: 화살표 위 = 정면.
+      // 하방 카메라도 화면 위쪽이 기체 전방이라 같은 기준으로 읽힌다.
+      const fwd = bodyToWorld(s.quat, { x: 0, y: 0, z: -1 });
+      const heading = Math.atan2(fwd.x, -fwd.z);
+      const bearing = Math.atan2(pad.dx, -pad.dz) - heading;
       refs.padArrow.style.transform = `rotate(${bearing}rad)`;
     },
-    setCameraMode(mode) {
-      refs.camMode.textContent = mode === "chase" ? "CHASE CAM" : "PAD CAM";
+    setCameraMode(text) {
+      refs.camMode.textContent = text;
     },
     showBanner(state, game) {
       refs.banner.classList.remove("hidden", "landed", "crashed", "emergency");
@@ -87,7 +90,8 @@ export function createHud() {
         refs.bannerBody.innerHTML =
           "초록색 패드에 착륙하세요 — 패드 밖이라도 평탄한 곳이면 비상 착륙 가능<br>" +
           "W/S 피치 · A/D 롤 · Q/E 요 · Space 메인 엔진<br>" +
-          "X SAS 토글 · C 카메라 전환 · R 재시작<br>" +
+          "1~6 또는 클릭: 카메라 확대/복귀 · C 카메라 순환<br>" +
+          "X SAS 토글 · R 재시작<br>" +
           `남은 기회 <strong>${game.lives}</strong><br><br>` +
           "<strong>Enter</strong> 를 눌러 시작";
       } else if (state === GameState.LANDED) {
