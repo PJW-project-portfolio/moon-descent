@@ -18,9 +18,14 @@ function initialSeed() {
 const canvas = document.getElementById("game-canvas");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// 카메라 6대가 같은 그림자 맵을 쓰므로 프레임당 한 번만 갱신 (cameras.render에서 요청)
+renderer.shadowMap.autoUpdate = false;
+const sceneOptions = { maxAnisotropy: renderer.capabilities.getMaxAnisotropy() };
 
 let game = createGame(initialSeed());
-let view = createScene(game.field);
+let view = createScene(game.field, sceneOptions);
 const cameras = createCameras();
 cameras.mountOn(view.lander.group);
 
@@ -90,7 +95,8 @@ input.on("restart", () => {
     // 새 게임: 새 지형이므로 장면을 다시 구성하고 카메라를 새 착륙선에 장착
     const newSeed = (Math.random() * 0xffffffff) >>> 0;
     game.reset(newSeed);
-    view = createScene(game.field);
+    view.dispose();
+    view = createScene(game.field, sceneOptions);
     cameras.mountOn(view.lander.group);
   }
   document.body.classList.remove("feeds-lost");

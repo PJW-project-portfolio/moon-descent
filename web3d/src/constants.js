@@ -14,7 +14,10 @@ export const SUBSTEP = 0.01; // 물리 서브스텝 10ms
 export const MAX_FRAME_DT = 0.1; // 탭 전환 등 긴 프레임 클램프
 
 export const TERRAIN_SIZE = 400; // 400×400 m, 원점 중심
-export const TERRAIN_SEGMENTS = 128; // 129×129 높이 그리드
+export const TERRAIN_SEGMENTS = 256; // 257×257 높이 그리드 (셀 약 1.56 m)
+export const CRATER_COUNT = 70; // 패드 주변을 제외하고 흩뿌리는 크레이터 수
+export const CRATER_MIN_R = 3; // m
+export const CRATER_MAX_R = 22; // m
 export const PAD_CENTER = { x: 60, z: -45 };
 export const PAD_RADIUS = 15; // 이 반경 안은 평탄 + 초록
 export const PAD_BLEND = 14; // 평탄 지대 바깥 블렌딩 링 폭

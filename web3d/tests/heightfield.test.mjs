@@ -73,3 +73,25 @@ test("같은 시드는 같은 지형, 다른 시드는 다른 지형", () => {
     Array.from(c.heights.slice(0, 50)),
   );
 });
+
+test("크레이터: 중심이 테두리보다 낮고 패드 영향권 밖에만 생성", () => {
+  const f = createHeightfield(42);
+  assert.ok(f.craters.length > 0);
+  let checked = 0;
+  for (const c of f.craters) {
+    assert.ok(
+      Math.hypot(c.x - PAD_CENTER.x, c.z - PAD_CENTER.z) > PAD_RADIUS,
+      "크레이터가 패드와 겹침",
+    );
+    if (c.r < 8 || Math.abs(c.x) > 150 || Math.abs(c.z) > 150) continue;
+    const center = f.sample(c.x, c.z);
+    const rims = [0, 1, 2, 3].map((k) => {
+      const a = (k * Math.PI) / 2;
+      return f.sample(c.x + Math.cos(a) * c.r, c.z + Math.sin(a) * c.r);
+    });
+    const rimAvg = rims.reduce((s, h) => s + h, 0) / rims.length;
+    assert.ok(center < rimAvg - c.r * 0.1, `r=${c.r.toFixed(1)} 중심 ${center.toFixed(2)} 테두리 ${rimAvg.toFixed(2)}`);
+    checked++;
+  }
+  assert.ok(checked > 0, "검사할 큰 크레이터가 없음");
+});
