@@ -27,17 +27,15 @@
     </div>
   </div>
 
-  <!-- 우상단: 패드 방향/거리 + 카메라 모드 -->
+  <!-- 우상단: 패드 방향/거리 + 현재 뷰 -->
   <div id="hud-nav" class="hud-box">
     <div class="stat"><span class="label">PAD</span><span id="hud-pad-dist" class="value">0 m</span></div>
     <div id="hud-pad-arrow">▲</div>
-    <div id="hud-cam-mode">CHASE CAM</div>
+    <div id="hud-cam-mode">GRID VIEW</div>
   </div>
 
-  <!-- 하단 PIP 라벨 프레임 (뷰포트는 캔버스에 직접 렌더링됨) -->
-  <div class="pip-frame" id="pip-0"><span class="pip-label">DOWN CAM</span><span class="crosshair">+</span></div>
-  <div class="pip-frame" id="pip-1"><span class="pip-label">FORWARD CAM</span></div>
-  <div class="pip-frame" id="pip-2"><span class="pip-label">PAD CAM</span></div>
+  <!-- 카메라 프레임 오버레이: cameras.js의 레이아웃에 맞춰 main.js가 배치 -->
+  <div id="cam-frames"></div>
 
   <!-- 중앙 배너 -->
   <div id="banner">

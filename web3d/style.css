@@ -141,20 +141,18 @@ body {
   letter-spacing: 1px;
 }
 
-/* PIP 프레임: cameras.js의 setViewport 좌표(왼쪽 아래 기준)와 일치해야 함 */
+/* 카메라 프레임: cameras.js의 레이아웃과 동일한 좌표로 main.js가 배치 */
 .pip-frame {
   position: fixed;
-  bottom: 12px;
-  width: 240px;
-  height: 160px;
   border: 1px solid rgba(60, 220, 120, 0.5);
   border-radius: 2px;
   pointer-events: none;
 }
 
-#pip-0 { left: 12px; }
-#pip-1 { left: 264px; }
-#pip-2 { left: 516px; }
+.pip-frame.focused {
+  border-color: rgba(125, 255, 158, 0.9);
+  box-shadow: 0 0 12px rgba(60, 220, 120, 0.25) inset;
+}
 
 .pip-label {
   position: absolute;

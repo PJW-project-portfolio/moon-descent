@@ -2,7 +2,13 @@
 
 export function createInput() {
   const held = new Set();
-  const listeners = { start: [], restart: [], toggleSas: [], cycleCamera: [] };
+  const listeners = {
+    start: [],
+    restart: [],
+    toggleSas: [],
+    cycleCamera: [],
+    selectCam: [],
+  };
   let sas = true;
 
   window.addEventListener("keydown", (e) => {
@@ -18,6 +24,11 @@ export function createInput() {
       listeners.toggleSas.forEach((f) => f(sas));
     }
     if (e.code === "KeyC") listeners.cycleCamera.forEach((f) => f());
+    const digit = /^(?:Digit|Numpad)([1-9])$/.exec(e.code);
+    if (digit) {
+      const index = Number(digit[1]) - 1;
+      listeners.selectCam.forEach((f) => f(index));
+    }
   });
   window.addEventListener("keyup", (e) => held.delete(e.code));
   window.addEventListener("blur", () => held.clear());

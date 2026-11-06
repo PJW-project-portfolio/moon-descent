@@ -77,8 +77,8 @@ export function createHud() {
       const bearing = Math.atan2(pad.dx, -pad.dz);
       refs.padArrow.style.transform = `rotate(${bearing}rad)`;
     },
-    setCameraMode(mode) {
-      refs.camMode.textContent = mode === "chase" ? "CHASE CAM" : "PAD CAM";
+    setCameraMode(text) {
+      refs.camMode.textContent = text;
     },
     showBanner(state, game) {
       refs.banner.classList.remove("hidden", "landed", "crashed", "emergency");
@@ -87,7 +87,8 @@ export function createHud() {
         refs.bannerBody.innerHTML =
           "초록색 패드에 착륙하세요 — 패드 밖이라도 평탄한 곳이면 비상 착륙 가능<br>" +
           "W/S 피치 · A/D 롤 · Q/E 요 · Space 메인 엔진<br>" +
-          "X SAS 토글 · C 카메라 전환 · R 재시작<br>" +
+          "1~4 또는 클릭: 카메라 확대/복귀 · C 카메라 순환<br>" +
+          "X SAS 토글 · R 재시작<br>" +
           `남은 기회 <strong>${game.lives}</strong><br><br>` +
           "<strong>Enter</strong> 를 눌러 시작";
       } else if (state === GameState.LANDED) {

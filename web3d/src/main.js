@@ -1,4 +1,5 @@
-// 부트스트랩 + 메인 루프: 게임 로직(10ms 서브스텝) ↔ 렌더링(rAF) 연결
+// 부트스트랩 + 메인 루프: 게임 로직(10ms 서브스텝) ↔ 렌더링(rAF) 연결.
+// 화면 구성은 FNAF 스타일 멀티뷰: 기본 2×2 그리드, 숫자키/클릭으로 확대.
 
 import * as THREE from "../vendor/three.module.min.js";
 import { MAX_FRAME_DT } from "./constants.js";
@@ -28,8 +29,44 @@ view.lander.group.add(cameras.forwardCam);
 const input = createInput();
 const hud = createHud();
 
+// 카메라 프레임 오버레이(라벨 + 테두리 + 하방캠 크로스헤어) 생성
+const frameContainer = document.getElementById("cam-frames");
+const frameEls = [];
+for (let i = 0; i < cameras.count; i++) {
+  const frame = document.createElement("div");
+  frame.className = "pip-frame";
+  const label = document.createElement("span");
+  label.className = "pip-label";
+  label.textContent = cameras.labelOf(i);
+  frame.appendChild(label);
+  if (cameras.keyOf(i) === "down") {
+    const crosshair = document.createElement("span");
+    crosshair.className = "crosshair";
+    crosshair.textContent = "+";
+    frame.appendChild(crosshair);
+  }
+  frameContainer.appendChild(frame);
+  frameEls.push(frame);
+}
+
+function syncCamFrames() {
+  const rects = cameras.layout(window.innerWidth, window.innerHeight);
+  for (const r of rects) {
+    const el = frameEls[r.index];
+    el.style.left = r.x + "px";
+    el.style.top = r.y + "px";
+    el.style.width = r.w + "px";
+    el.style.height = r.h + "px";
+    el.classList.toggle("focused", r.focused);
+  }
+  hud.setCameraMode(
+    cameras.focusIndex === null ? "GRID VIEW" : cameras.labelOf(cameras.focusIndex),
+  );
+}
+
 function resize() {
   renderer.setSize(window.innerWidth, window.innerHeight, false);
+  syncCamFrames();
 }
 window.addEventListener("resize", resize);
 resize();
@@ -55,17 +92,42 @@ input.on("restart", () => {
     cameras = createCameras(game.field);
     view.lander.group.add(cameras.downCam);
     view.lander.group.add(cameras.forwardCam);
-    hud.setCameraMode(cameras.mainMode);
+    syncCamFrames();
   }
   hud.showBanner(GameState.READY, game);
 });
 
+input.on("selectCam", (i) => {
+  if (i < cameras.count) {
+    cameras.toggleFocus(i);
+    syncCamFrames();
+  }
+});
+
 input.on("cycleCamera", () => {
-  hud.setCameraMode(cameras.cycleMain());
+  cameras.cycle();
+  syncCamFrames();
+});
+
+// 카메라 타일 클릭: 그리드에서 클릭하면 확대, 확대된 타일을 다시 클릭하면 복귀
+canvas.addEventListener("click", (e) => {
+  const rects = cameras.layout(window.innerWidth, window.innerHeight);
+  for (const r of rects) {
+    if (
+      e.clientX >= r.x &&
+      e.clientX <= r.x + r.w &&
+      e.clientY >= r.y &&
+      e.clientY <= r.y + r.h
+    ) {
+      cameras.toggleFocus(r.index);
+      syncCamFrames();
+      return;
+    }
+  }
 });
 
 hud.showBanner(GameState.READY, game);
-hud.setCameraMode(cameras.mainMode);
+syncCamFrames();
 
 let last = performance.now();
 let bannerShownFor = GameState.READY;
