@@ -1,5 +1,5 @@
 // 부트스트랩 + 메인 루프: 게임 로직(10ms 서브스텝) ↔ 렌더링(rAF) 연결.
-// 화면 구성은 FNAF 스타일 멀티뷰: 기본 2×2 그리드, 숫자키/클릭으로 확대.
+// 화면 구성은 FNAF 스타일 멀티뷰: 착륙선 장착 카메라 그리드, 숫자키/클릭으로 확대.
 
 import * as THREE from "../vendor/three.module.min.js";
 import { MAX_FRAME_DT } from "./constants.js";
@@ -21,10 +21,8 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
 let game = createGame(initialSeed());
 let view = createScene(game.field);
-let cameras = createCameras(game.field);
-// 하방/전방 카메라는 착륙선에 부착
-view.lander.group.add(cameras.downCam);
-view.lander.group.add(cameras.forwardCam);
+const cameras = createCameras();
+cameras.mountOn(view.lander.group);
 
 const input = createInput();
 const hud = createHud();
@@ -45,6 +43,11 @@ for (let i = 0; i < cameras.count; i++) {
     crosshair.textContent = "+";
     frame.appendChild(crosshair);
   }
+  // 기체 파괴 시 표시되는 신호 끊김 화면
+  const lost = document.createElement("div");
+  lost.className = "signal-lost";
+  lost.textContent = "SIGNAL LOST";
+  frame.appendChild(lost);
   frameContainer.appendChild(frame);
   frameEls.push(frame);
 }
@@ -83,17 +86,14 @@ input.on("restart", () => {
     // 목숨이 남아 있으면 같은 지형에서 재도전 (지형/장면 재사용)
     game.retry();
     view.setLanderVisible(true);
-    cameras.resetChase();
   } else {
-    // 새 게임: 새 지형이므로 장면과 카메라를 다시 구성
+    // 새 게임: 새 지형이므로 장면을 다시 구성하고 카메라를 새 착륙선에 장착
     const newSeed = (Math.random() * 0xffffffff) >>> 0;
     game.reset(newSeed);
     view = createScene(game.field);
-    cameras = createCameras(game.field);
-    view.lander.group.add(cameras.downCam);
-    view.lander.group.add(cameras.forwardCam);
-    syncCamFrames();
+    cameras.mountOn(view.lander.group);
   }
+  document.body.classList.remove("feeds-lost");
   hud.showBanner(GameState.READY, game);
 });
 
@@ -144,7 +144,7 @@ function frame(now) {
       game.state === GameState.GAME_OVER
     ) {
       view.setLanderVisible(false);
-      document.body.classList.add("crash-flash");
+      document.body.classList.add("crash-flash", "feeds-lost");
       setTimeout(() => document.body.classList.remove("crash-flash"), 600);
     }
   }
@@ -158,7 +158,6 @@ function frame(now) {
 
   view.syncLander(game.lander);
   view.tick(dt);
-  cameras.update(game.lander.pos, dt);
   cameras.render(renderer, view.scene);
   hud.update(game, snapshot);
 

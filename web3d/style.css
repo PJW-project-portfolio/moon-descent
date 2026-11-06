@@ -24,6 +24,7 @@ body {
 
 .hud-box {
   position: fixed;
+  z-index: 2;
   padding: 12px 16px;
   background: rgba(5, 15, 10, 0.65);
   border: 1px solid rgba(60, 220, 120, 0.35);
@@ -33,12 +34,12 @@ body {
 }
 
 #hud-panel {
-  top: 16px;
+  top: 34px;
   left: 16px;
 }
 
 #hud-nav {
-  top: 16px;
+  top: 34px;
   right: 16px;
   text-align: center;
   min-width: 140px;
@@ -154,8 +155,34 @@ body {
   box-shadow: 0 0 12px rgba(60, 220, 120, 0.25) inset;
 }
 
+/* 기체 파괴 시 전 카메라 피드 끊김 (body.feeds-lost) */
+.signal-lost {
+  display: none;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  letter-spacing: 4px;
+  color: rgba(255, 107, 92, 0.9);
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 4px),
+    rgba(10, 10, 12, 0.92);
+  animation: signal-flicker 0.18s steps(2) infinite;
+}
+
+body.feeds-lost .signal-lost {
+  display: flex;
+}
+
+@keyframes signal-flicker {
+  from { opacity: 1; }
+  to { opacity: 0.82; }
+}
+
 .pip-label {
   position: absolute;
+  z-index: 1;
   top: -1px;
   left: -1px;
   font-size: 10px;
@@ -178,6 +205,7 @@ body {
 
 #banner {
   position: fixed;
+  z-index: 3;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
