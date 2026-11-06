@@ -150,6 +150,7 @@ export function createCameras() {
       renderer.setScissor(0, 0, w, h);
       renderer.setClearColor(0x000000, 1);
       renderer.clear();
+      renderer.shadowMap.needsUpdate = true; // 첫 뷰 렌더 때 한 번 갱신되고 해제됨
 
       for (const r of layoutRects(w, h)) {
         const glY = h - r.y - r.h; // setViewport의 y는 아래에서 위로
